@@ -277,7 +277,7 @@
         class: state.tab === item.key ? "nav-link active" : "nav-link",
         onclick: () => switchTab(item.key),
         title: item.label,
-      }, [icon(item.icon), h("span", {}, item.label)]))),
+      }, [icon(item.icon), h("span", { class: "nav-label" }, [h("span", {}, item.label), navNotificationBadge(item.key)]), navNotificationDot(item.key)]))),
       accountActions("sidebar-mobile-actions mobile-only"),
     ]);
   }
@@ -296,40 +296,31 @@
   function accountActions(className) {
     return h("div", { class: className }, [
       h("button", { class: "icon-btn", title: "Theme", onclick: toggleTheme }, [icon(state.theme === "dark" ? "Sun" : "Moon")]),
-      notificationCenter(),
       h("button", { class: "profile-pill profile-trigger", title: "Account info", onclick: () => openModal("profile", state.user) }, [h("span", { class: "avatar" }, initials(state.user.name)), h("span", {}, `${state.user.name} (${displayRoles(state.user).join(", ") || "User"})`)]),
       h("button", { class: "btn btn-soft", onclick: logout }, [icon("LogOut"), "Logout"]),
     ]);
   }
 
-  function notificationCenter() {
-    const unread = state.notifications.filter((item) => !item.is_read).length;
-    return h("div", { class: state.notificationsOpen ? "notification-wrap open" : "notification-wrap" }, [
-      h("button", { class: "icon-btn notification-btn", title: "Notifications", onclick: toggleNotifications }, [
-        icon("Bell"),
-        unread ? h("span", { class: "notification-dot", "aria-label": `${unread} unread notifications` }) : null,
-      ]),
-      state.notificationsOpen ? h("div", { class: "notification-menu" }, [
-        h("div", { class: "notification-head" }, [
-          h("span", {}, [h("strong", {}, "Notifications"), h("small", {}, unread ? `${unread} unread` : "All caught up")]),
-          state.notifications.length ? h("button", { class: "link-button", onclick: markNotificationsRead }, "Mark read") : null,
-        ]),
-        h("div", { class: "notification-list" }, state.notifications.length
-          ? state.notifications.map(notificationItem)
-          : [h("div", { class: "notification-empty" }, [icon("Bell", 20), h("strong", {}, "No notifications"), h("small", {}, "Workspace updates will appear here.")])]),
-      ]) : null,
-    ]);
+  function navNotificationBadge(key) {
+    const count = moduleNotificationCount(key);
+    return count ? h("span", { class: "nav-badge", title: `${count} unread notification${count === 1 ? "" : "s"}` }, count > 9 ? "9+" : count) : null;
   }
 
-  function notificationItem(item) {
-    return h("article", { class: item.is_read ? "notification-item" : "notification-item unread" }, [
-      h("span", { class: "notification-icon" }, [icon("Bell", 15)]),
-      h("span", {}, [
-        h("strong", {}, item.title),
-        item.body ? h("small", {}, item.body) : null,
-        h("time", {}, formatDate(item.created_at)),
-      ]),
-    ]);
+  function navNotificationDot(key) {
+    return moduleNotificationCount(key) ? h("span", { class: "nav-dot", "aria-hidden": "true" }) : null;
+  }
+
+  function moduleNotificationCount(key) {
+    return state.notifications.filter((item) => !item.is_read && notificationModuleKey(item) === key).length;
+  }
+
+  function notificationModuleKey(item) {
+    const text = [item.title, item.body].join(" ").toLowerCase();
+    if (/\b(project|invoice|deadline|task)\b/.test(text)) return "projects";
+    if (/\b(chatter|conversation|message|chat|attachment|file)\b/.test(text)) return "chatters";
+    if (/\b(user|role|account|access|customer|developer|manager)\b/.test(text)) return "users";
+    if (/\b(login|audit|activity|monitor|operation|system)\b/.test(text)) return "monitoring";
+    return "dashboard";
   }
 
   function pageSubtitle() {
