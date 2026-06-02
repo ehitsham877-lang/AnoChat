@@ -297,7 +297,7 @@
     return h("div", { class: className }, [
       h("button", { class: "icon-btn", title: "Theme", onclick: toggleTheme }, [icon(state.theme === "dark" ? "Sun" : "Moon")]),
       notificationCenter(),
-      h("div", { class: "profile-pill" }, [h("span", { class: "avatar" }, initials(state.user.name)), h("span", {}, `${state.user.name} (${displayRoles(state.user).join(", ") || "User"})`)]),
+      h("button", { class: "profile-pill profile-trigger", title: "Account info", onclick: () => openModal("profile", state.user) }, [h("span", { class: "avatar" }, initials(state.user.name)), h("span", {}, `${state.user.name} (${displayRoles(state.user).join(", ") || "User"})`)]),
       h("button", { class: "btn btn-soft", onclick: logout }, [icon("LogOut"), "Logout"]),
     ]);
   }
@@ -1135,6 +1135,7 @@
         modal.type === "chatter" ? chatterForm(modal.data) : null,
         modal.type === "user" ? userForm() : null,
         modal.type === "role" ? roleForm(modal.data) : null,
+        modal.type === "profile" ? profileBody(modal.data || state.user) : null,
         modal.type === "chatterDetails" ? chatterDetailsBody(modal.chatter) : null,
         modal.type === "confirm" ? confirmBody(modal) : null,
       ]),
@@ -1146,6 +1147,7 @@
     if (modal.type === "chatter") return modal.data ? "Edit Chatter" : "Create Chatter";
     if (modal.type === "user") return "Create User";
     if (modal.type === "role") return "Edit User";
+    if (modal.type === "profile") return "Account Info";
     if (modal.type === "chatterDetails") return "Chatter Info";
     return modal.title || "Confirm";
   }
@@ -1172,6 +1174,36 @@
         h("button", { type: "button", class: "btn btn-soft", onclick: closeModal }, "Cancel"),
         h("button", { type: "button", class: "btn btn-danger", onclick: async () => { const fn = modal.action; closeModal(); await fn(); } }, "Confirm"),
       ]),
+    ]);
+  }
+
+  function profileBody(user) {
+    return h("div", { class: "profile-modal-body" }, [
+      h("div", { class: "profile-modal-hero" }, [
+        h("span", { class: "avatar profile-modal-avatar" }, initials(user?.name || "User")),
+        h("div", {}, [
+          h("h3", {}, user?.name || "User"),
+          h("p", {}, user?.email || user?.login || ""),
+          h("div", { class: "badge-row" }, roles(user).map((role) => badge(role, "role"))),
+        ]),
+      ]),
+      h("div", { class: "profile-detail-grid" }, [
+        profileDetail("Login", user?.login || "Not set", "UserRound"),
+        profileDetail("Email", user?.email || "Not set", "Mail"),
+        profileDetail("Status", user?.active ? "Active" : "Inactive", "Activity"),
+        profileDetail("Created", formatDate(user?.created_at) || "Not available", "Calendar"),
+      ]),
+      h("div", { class: "modal-actions profile-modal-actions" }, [
+        isAdmin() ? h("button", { type: "button", class: "btn btn-outline", onclick: () => { const current = state.users.find((item) => item.id === user?.id) || user; openModal("role", current); } }, [icon("Edit"), "Edit account"]) : null,
+        h("button", { type: "button", class: "btn btn-primary", onclick: closeModal }, "Done"),
+      ]),
+    ]);
+  }
+
+  function profileDetail(label, value, iconName) {
+    return h("div", { class: "profile-detail" }, [
+      h("span", {}, [icon(iconName, 15)]),
+      h("div", {}, [h("small", {}, label), h("strong", {}, value)]),
     ]);
   }
 
