@@ -495,7 +495,7 @@
     if (tab === "dashboard") await Promise.all([loadUsers(), loadProjects(), loadChatters(), loadMonitoringSoft()]);
     if (tab === "projects") await Promise.all([loadUsers(), loadProjects()]);
     if (tab === "chatters") await Promise.all([loadUsers(), loadProjects(), loadChatters(), loadFiles()]);
-    if (tab === "monitoring") await loadMonitoring();
+    if (tab === "monitoring") await Promise.all([loadMonitoring(), loadChatters({ listOnly: true })]);
     if (tab === "users") await loadUsers();
   }
 
@@ -503,8 +503,9 @@
   async function loadNotifications() { state.notifications = await apiClient.get("/api/notifications"); }
   async function loadProjects() { state.projects = await apiClient.get("/api/projects"); }
   async function loadFiles() { state.files = await apiClient.get("/api/attachments"); }
-  async function loadChatters() {
+  async function loadChatters(options = {}) {
     state.chatters = await apiClient.get("/api/chatters");
+    if (options.listOnly) return;
     if (!state.activeChatter && state.chatters.length) state.activeChatter = state.chatters[0].id;
     if (state.activeChatter && !state.chatters.some((item) => item.id === state.activeChatter)) state.activeChatter = state.chatters[0]?.id || null;
     state.messages = state.activeChatter ? await apiClient.get(`/api/chatters/${state.activeChatter}/messages`) : [];
@@ -926,8 +927,7 @@
       h("section", { class: "metric-grid" }, [
         metric("Users", state.stats?.users || 0, "Users", "Current total"),
         metric("Projects", state.stats?.projects || 0, "FolderKanban", "Current total"),
-        metric("Chatters", state.stats?.chatters || 0, "MessagesSquare", "Current total"),
-        metric("Messages", state.stats?.messages || 0, "MessageCircle", "Current total"),
+        metric("Chatters", state.chatters.length, "MessagesSquare", "Current total"),
       ]),
       h("section", { class: "toolbar card activity-toolbar" }, [
         searchBox("Search activity logs", "logSearch"),
