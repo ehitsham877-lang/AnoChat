@@ -31,6 +31,7 @@ class UserUpdate(BaseModel):
     phone: str | None = None
     password: str | None = Field(default=None, min_length=8)
     active: bool | None = None
+    messenger_status: str | None = None
     roles: list[str] | None = None
 
 
@@ -157,6 +158,7 @@ class ChatterOut(BaseModel):
     allow_attachments: bool
     last_message_preview: str | None = None
     last_activity: datetime | None = None
+    unread_count: int = 0
     members: list[UserOut] = []
     created_at: datetime
 

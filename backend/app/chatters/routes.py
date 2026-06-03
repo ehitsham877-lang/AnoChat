@@ -15,10 +15,26 @@ from app.schemas import ChatterCreate, ChatterOut, ChatterUpdate, MessageCreate,
 router = APIRouter(prefix="/api/chatters", tags=["chatters"])
 
 
+def unread_count_for(chatter: Chatter, current_user: User) -> int:
+    return sum(
+        1
+        for message in chatter.messages
+        if message.sender_id != current_user.id
+        and not message.is_deleted
+        and current_user not in message.seen_by
+    )
+
+
+def chatter_out(chatter: Chatter, current_user: User) -> Chatter:
+    chatter.unread_count = unread_count_for(chatter, current_user)
+    return chatter
+
+
 @router.get("", response_model=list[ChatterOut])
 def list_chatters(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     chatters = db.query(Chatter).filter(Chatter.active.is_(True)).order_by(Chatter.last_activity.desc()).all()
-    return chatters if is_admin(current_user) else [c for c in chatters if can_access_chatter(current_user, c)]
+    visible = chatters if is_admin(current_user) else [c for c in chatters if can_access_chatter(current_user, c)]
+    return [chatter_out(chatter, current_user) for chatter in visible]
 
 
 @router.post("", response_model=ChatterOut, status_code=201)
@@ -36,14 +52,14 @@ def create_chatter(payload: ChatterCreate, db: Session = Depends(get_db), curren
     log_activity(db, "chatter_created", f"{current_user.name} created chatter {chatter.name}.", current_user.id)
     db.commit()
     db.refresh(chatter)
-    return chatter
+    return chatter_out(chatter, current_user)
 
 
 @router.get("/{chatter_id}", response_model=ChatterOut)
 def get_chatter(chatter_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     chatter = get_or_404(db, Chatter, chatter_id)
     assert_chatter_access(current_user, chatter)
-    return chatter
+    return chatter_out(chatter, current_user)
 
 
 @router.put("/{chatter_id}", response_model=ChatterOut)
@@ -60,7 +76,7 @@ def update_chatter(chatter_id: int, payload: ChatterUpdate, db: Session = Depend
     log_activity(db, "chatter_updated", f"{current_user.name} updated chatter {chatter.name}.", current_user.id)
     db.commit()
     db.refresh(chatter)
-    return chatter
+    return chatter_out(chatter, current_user)
 
 
 @router.delete("/{chatter_id}")
@@ -80,6 +96,13 @@ def list_messages(chatter_id: int, db: Session = Depends(get_db), current_user: 
     assert_chatter_access(current_user, chatter)
     query = db.query(Message).filter(Message.chatter_id == chatter_id)
     messages = query.order_by(Message.created_at.asc()).limit(500).all()
+    changed = False
+    for message in messages:
+        if message.sender_id != current_user.id and current_user not in message.seen_by:
+            message.seen_by.append(current_user)
+            changed = True
+    if changed:
+        db.commit()
     return [message_out(message, current_user) for message in messages]
 
 

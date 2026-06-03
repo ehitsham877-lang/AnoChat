@@ -22,6 +22,8 @@
     messages: [],
     notifications: [],
     notificationsOpen: false,
+    presenceOpen: false,
+    presenceSyncTimer: null,
     files: [],
     activityLogs: [],
     emailLogs: [],
@@ -32,6 +34,7 @@
     scrollMessagesBottom: false,
     sendingMessage: false,
     composerBody: "",
+    pendingAttachment: null,
     mention: { open: false, query: "" },
     renderCycle: 0,
     filters: { projectSearch: "", projectStatus: "all", projectPriority: "all", logSearch: "", logType: "all", userSearch: "", chatterSearch: "" },
@@ -81,6 +84,7 @@
       Moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
       Paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.49-8.48"/>',
       Plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+      RadioTower: '<path d="M4.9 16.1a10 10 0 0 1 0-8.2"/><path d="M7.8 13.2a5 5 0 0 1 0-4.4"/><circle cx="12" cy="11" r="2"/><path d="m12 13 4 8"/><path d="m12 13-4 8"/><path d="M16.2 13.2a5 5 0 0 0 0-4.4"/><path d="M19.1 16.1a10 10 0 0 0 0-8.2"/>',
       Tag: '<path d="M12.6 2H4a2 2 0 0 0-2 2v8.6a2 2 0 0 0 .6 1.4l7.4 7.4a2 2 0 0 0 2.8 0l8.6-8.6a2 2 0 0 0 0-2.8L14 2.6A2 2 0 0 0 12.6 2Z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
       Search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
       Send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
@@ -145,6 +149,7 @@
       localStorage.setItem("anochat_tab", state.tab);
     }
     document.documentElement.dataset.theme = state.theme;
+    document.documentElement.dataset.tab = state.tab;
     app.innerHTML = "";
     if (state.bootstrapping && apiClient.token() && !state.user) {
       app.appendChild(bootView());
@@ -296,18 +301,42 @@
   function accountActions(className) {
     return h("div", { class: className }, [
       h("button", { class: "icon-btn", title: "Theme", onclick: toggleTheme }, [icon(state.theme === "dark" ? "Sun" : "Moon")]),
-      h("button", { class: "profile-pill profile-trigger", title: "Account info", onclick: () => openModal("profile", state.user) }, [h("span", { class: "avatar" }, initials(state.user.name)), h("span", {}, `${state.user.name} (${displayRoles(state.user).join(", ") || "User"})`)]),
+      presenceControl(),
+      h("button", { class: "profile-pill profile-trigger", title: "Account info", onclick: () => openModal("profile", state.user) }, [h("span", { class: `avatar presence-avatar presence-${state.user.messenger_status || "offline"}` }, initials(state.user.name)), h("span", {}, `${state.user.name} (${displayRoles(state.user).join(", ") || "User"})`)]),
       h("button", { class: "btn btn-soft", onclick: logout }, [icon("LogOut"), "Logout"]),
     ]);
   }
 
+  function presenceControl() {
+    const status = state.user?.messenger_status || "offline";
+    return h("div", { class: "presence-wrap" }, [
+      h("button", { class: `icon-btn presence-btn presence-${status}`, title: `Presence: ${cap(status)}`, onclick: togglePresenceMenu }, [icon("RadioTower"), h("span", { class: "presence-btn-dot" })]),
+      state.presenceOpen ? h("div", { class: "presence-menu" }, ["online", "away", "busy", "offline"].map((value) => h("button", {
+        type: "button",
+        class: value === status ? "presence-option active" : "presence-option",
+        onclick: () => savePresenceStatus(value),
+      }, [h("span", { class: `presence-dot presence-${value}` }), h("span", {}, cap(value)), value === status ? icon("Check", 14) : null]))) : null,
+    ]);
+  }
+
+  function togglePresenceMenu(event) {
+    if (event) event.preventDefault();
+    state.presenceOpen = !state.presenceOpen;
+    render();
+  }
+
   function navNotificationBadge(key) {
-    const count = moduleNotificationCount(key);
-    return count ? h("span", { class: "nav-badge", title: `${count} unread notification${count === 1 ? "" : "s"}` }, count > 9 ? "9+" : count) : null;
+    const count = moduleBadgeCount(key);
+    return count ? h("span", { class: "nav-badge", title: `${count} unread notification${count === 1 ? "" : "s"}` }, count) : null;
   }
 
   function navNotificationDot(key) {
-    return moduleNotificationCount(key) ? h("span", { class: "nav-dot", "aria-hidden": "true" }) : null;
+    return moduleBadgeCount(key) ? h("span", { class: "nav-dot", "aria-hidden": "true" }) : null;
+  }
+
+  function moduleBadgeCount(key) {
+    if (key === "chatters") return state.chatters.reduce((total, chatter) => total + Number(chatter.unread_count || 0), 0);
+    return moduleNotificationCount(key);
   }
 
   function moduleNotificationCount(key) {
@@ -379,6 +408,15 @@
     return h("div", { class: "toast-region" }, state.toasts.map((item) => h("div", { class: `toast ${item.type}` }, [icon(item.type === "error" ? "X" : "Check"), h("span", {}, item.message)])));
   }
 
+  function broadcastPresenceChange(user) {
+    if (!user?.id) return;
+    localStorage.setItem("anochat_presence_changed", JSON.stringify({
+      user_id: user.id,
+      status: user.messenger_status || "offline",
+      at: Date.now(),
+    }));
+  }
+
   async function login(event) {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target).entries());
@@ -392,12 +430,17 @@
       apiClient.setToken(result.access_token);
       state.user = result.user;
       await loadAll();
+      broadcastPresenceChange(state.user);
+      startPresenceSync();
     }, "Signed in.");
   }
 
   async function logout() {
     await run(async () => {
+      const loggedOutUser = state.user;
       try { await apiClient.post("/api/auth/logout", {}); } catch (_) {}
+      if (loggedOutUser) broadcastPresenceChange({ ...loggedOutUser, messenger_status: "offline" });
+      stopPresenceSync();
       apiClient.clearToken();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [],
@@ -461,6 +504,37 @@
     }
   }
 
+  function startPresenceSync() {
+    stopPresenceSync();
+    state.presenceSyncTimer = window.setInterval(() => refreshPresenceData(true), 8000);
+  }
+
+  function stopPresenceSync() {
+    if (state.presenceSyncTimer) window.clearInterval(state.presenceSyncTimer);
+    state.presenceSyncTimer = null;
+  }
+
+  async function refreshPresenceData(silent) {
+    if (!apiClient.token() || !state.user) return;
+    try {
+      const [me, users, chatters] = await Promise.all([
+        apiClient.get("/api/auth/me"),
+        apiClient.get("/api/users"),
+        apiClient.get("/api/chatters"),
+      ]);
+      state.user = me;
+      state.users = users;
+      state.chatters = chatters;
+      if (state.activeChatter) markChatterReadLocally(state.activeChatter);
+      if (!state.modal || state.modal.type === "profile") {
+        if (state.modal?.type === "profile") state.modal = { type: "profile", data: me };
+        render();
+      }
+    } catch (err) {
+      if (!silent) toast(err.message || "Could not refresh presence.", "error");
+    }
+  }
+
   async function loadAll() {
     state.user = await apiClient.get("/api/auth/me");
     if (!availableNavItems().some((item) => item.key === state.tab)) {
@@ -476,7 +550,9 @@
     render();
     try {
       await loadAll();
+      startPresenceSync();
     } catch (err) {
+      stopPresenceSync();
       apiClient.clearToken();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [],
@@ -509,6 +585,7 @@
     if (!state.activeChatter && state.chatters.length) state.activeChatter = state.chatters[0].id;
     if (state.activeChatter && !state.chatters.some((item) => item.id === state.activeChatter)) state.activeChatter = state.chatters[0]?.id || null;
     state.messages = state.activeChatter ? await apiClient.get(`/api/chatters/${state.activeChatter}/messages`) : [];
+    if (state.activeChatter) markChatterReadLocally(state.activeChatter);
   }
   async function loadMonitoringSoft() { if (canManage()) await loadMonitoring(); }
   async function loadMonitoring() {
@@ -666,17 +743,13 @@
         h("article", { class: "chat-window card" }, [
           h("div", { class: "chat-head" }, [
             active ? chatHeaderIdentity(active) : h("div", { class: "chat-header-identity" }, [h("span", { class: "chat-header-avatar" }, [icon("MessagesSquare", 22)]), h("span", {}, [h("h2", {}, "Messages"), h("p", { class: "muted" }, "Select a conversation")])]),
-            active && canManage() ? h("div", { class: "chat-head-actions" }, [
-              h("button", { class: "btn btn-outline chat-edit-btn", onclick: () => openModal("chatter", active) }, [icon("Edit"), "Edit"]),
-              canDeleteChatter(active) ? h("button", { class: "btn action-danger chat-delete-btn", onclick: () => confirmAction("Delete chatter?", "This hides the chatter from the active list.", () => deleteChatter(active.id)) }, [icon("Trash"), "Delete"]) : null,
-            ]) : null,
           ]),
           h("div", { class: "message-stream" }, active ? (state.messages.length ? state.messages.map(messageBubble) : [chatEmptyState()]) : [chatEmptyState("Select a conversation", "Choose a chatter from the list to view messages.")]),
           active ? messageComposer() : null,
         ]),
         state.chatterInfoOpen && active ? chatterInfoPanel(active) : null,
       ]),
-    ]);
+    ], "chat-page");
   }
 
   function chatterList(limit, openOnClick) {
@@ -743,6 +816,7 @@
         h("div", {}, [icon("Calendar", 14), h("span", {}, `Created ${formatDate(chatter.created_at)}`)]),
         h("div", {}, [icon("Paperclip", 14), h("span", {}, `${files.length} shared file${files.length === 1 ? "" : "s"}`)]),
       ]),
+      canManage() ? chatterInfoActions(chatter) : null,
       h("div", { class: "chat-info-section-title" }, [icon("Users", 14), h("span", {}, "Members")]),
       members.length ? h("div", { class: "conversation-details-members" }, members.slice(0, 6).map((member) => h("div", { class: "conversation-detail-member" }, [
         h("span", { class: "member-mini-avatar" }, initials(member.name || member.email)),
@@ -761,6 +835,13 @@
     ]);
   }
 
+  function chatterInfoActions(chatter) {
+    return h("div", { class: "chat-info-actions", "aria-label": "Chatter actions" }, [
+      h("button", { type: "button", class: "chat-info-action edit", onclick: () => openModal("chatter", chatter) }, [icon("Edit", 14), h("span", {}, "Edit")]),
+      canDeleteChatter(chatter) ? h("button", { type: "button", class: "chat-info-action danger", onclick: () => confirmAction("Delete chatter?", "This hides the chatter from the active list.", () => deleteChatter(chatter.id)) }, [icon("Trash", 14), h("span", {}, "Delete")]) : null,
+    ]);
+  }
+
   function chatEmptyState(title, subtitle) {
     return h("div", { class: "chat-empty-state" }, [
       h("span", { class: "empty-illustration" }, [icon("MessagesSquare", 34)]),
@@ -773,6 +854,7 @@
     const own = message.sender_id === state.user.id;
     const deletedByCurrentUser = Number(message.deleted_by_id) === Number(state.user?.id);
     const hasAttachments = !!(message.attachments && message.attachments.length);
+    const bodyText = hasAttachments && String(message.body || "").trim() === "Attachment" ? "" : (message.body || "");
     const deletedNote = message.is_deleted && isAdmin()
       ? `This message was deleted by ${deletedByCurrentUser ? "you" : (message.deleted_by_name || userName(message.deleted_by_id) || "a user")}.`
       : "";
@@ -783,7 +865,7 @@
             h("strong", {}, userName(message.sender_id)),
             !message.is_deleted && (own || isAdmin()) ? h("button", { class: "delete-link", title: "Delete message", "aria-label": "Delete message", onclick: () => confirmAction("Delete message?", "This message will be removed.", () => deleteMessage(message.id)) }, [icon("Trash", 14)]) : null,
           ]),
-          h("p", {}, message.body),
+          bodyText ? h("p", {}, bodyText) : null,
           hasAttachments ? h("div", { class: "attachment-strip" }, message.attachments.map(messageAttachment)) : null,
         ]),
         deletedNote ? h("small", { class: "deleted-message-note" }, [icon("Trash", 12), h("span", {}, deletedNote)]) : null,
@@ -800,14 +882,14 @@
         h("input", { name: "body", value: state.composerBody, placeholder: "Write a message...", autocomplete: "off", oninput: updateComposerText, onkeydown: handleComposerKeydown }),
         state.mention.open ? mentionDropdown(active) : null,
       ]),
-      h("label", { class: "file-chip chat-file-chip" }, [icon("Paperclip"), h("span", { class: "file-chip-text" }, "Attach"), h("input", { type: "file", name: "file", onchange: updateAttachmentLabel })]),
+      h("label", { class: "file-chip chat-file-chip" }, [icon("Paperclip"), h("span", { class: "file-chip-text" }, state.pendingAttachment?.name || "Attach"), h("input", { type: "file", name: "file", onchange: updateAttachmentLabel })]),
       h("button", { class: "btn btn-primary chat-send-btn", disabled: state.sendingMessage }, [icon("Send"), state.sendingMessage ? "Sending..." : "Send"]),
     ]);
   }
 
   function messageAttachment(file) {
     const image = isImageFile(file);
-    return h("button", { type: "button", class: image ? "attachment-preview-card" : "", onclick: () => downloadAttachment(file) }, [
+    return h("button", { type: "button", class: image ? "attachment-preview-card" : "attachment-pill", title: file.filename || "Attachment", onclick: () => downloadAttachment(file) }, [
       image ? imagePreview(file, "message-image-preview") : icon("Paperclip", 14),
       h("span", {}, file.filename),
     ]);
@@ -915,16 +997,17 @@
   }
 
   function updateAttachmentLabel(event) {
+    state.pendingAttachment = event.target.files && event.target.files[0] ? event.target.files[0] : null;
     const label = event.target.closest(".file-chip");
     const text = label ? label.querySelector(".file-chip-text") : null;
-    if (text) text.textContent = event.target.files && event.target.files[0] ? event.target.files[0].name : "Attach";
+    if (text) text.textContent = state.pendingAttachment?.name || "Attach";
   }
 
   function monitoringView() {
     if (!canManage()) return page([restricted("Monitoring is available to admins only.")]);
     const logs = filteredLogs();
     return page([
-      h("section", { class: "metric-grid" }, [
+      h("section", { class: "metric-grid monitoring-metrics" }, [
         metric("Users", state.stats?.users || 0, "Users", "Current total"),
         metric("Projects", state.stats?.projects || 0, "FolderKanban", "Current total"),
         metric("Chatters", state.chatters.length, "MessagesSquare", "Current total"),
@@ -938,10 +1021,18 @@
   }
 
   function filteredLogs() {
-    const q = state.filters.logSearch.toLowerCase();
+    const q = String(state.filters.logSearch || "").trim().toLowerCase();
     const type = state.filters.logType;
     return state.activityLogs.filter((log) => {
-      const matchesSearch = !q || [log.activity_type, log.description, log.status].join(" ").toLowerCase().indexOf(q) >= 0;
+      const searchText = [
+        log.id,
+        log.activity_type,
+        cleanLogType(log.activity_type),
+        log.description,
+        log.status,
+        formatDate(log.created_at),
+      ].join(" ").toLowerCase();
+      const matchesSearch = !q || searchText.indexOf(q) >= 0;
       const matchesType = type === "all" || logTypeClass(log.activity_type) === type;
       return matchesSearch && matchesType;
     });
@@ -1027,12 +1118,12 @@
   function userRow(user) {
     return [
       h("div", { class: "user-person" }, [
-        h("span", { class: "avatar user-avatar" }, initials(user.name)),
+        h("span", { class: `avatar user-avatar presence-avatar presence-${user.messenger_status || "offline"}` }, initials(user.name)),
         h("span", { class: "user-name-stack" }, [h("strong", {}, user.name), h("small", {}, user.login || user.email)]),
       ]),
       h("span", { class: "user-email" }, [icon("Mail", 15), user.email]),
       h("div", { class: "badge-row" }, roles(user).map((role) => badge(role, "role"))),
-      user.active ? badge("active", "status") : badge("inactive", "status"),
+      userStatusBadge(user),
       formatDate(user.created_at),
       isAdmin() ? h("div", { class: "row-actions" }, [
         h("button", { class: "btn btn-outline action-role", onclick: () => openModal("role", user) }, [icon("Edit"), "Edit"]),
@@ -1041,6 +1132,12 @@
         user.id !== state.user.id ? h("button", { class: "btn btn-danger action-danger", onclick: () => confirmAction("Delete user?", "This permanently removes the user account.", () => deleteUser(user.id)) }, [icon("Trash"), "Delete"]) : null,
       ]) : "",
     ];
+  }
+
+  function userStatusBadge(user) {
+    if (!user.active) return badge("inactive", "status");
+    const status = String(user.messenger_status || "offline").toLowerCase();
+    return h("span", { class: `presence-badge presence-${status}` }, [h("i"), cap(status)]);
   }
 
   function usersTable(users) {
@@ -1174,9 +1271,10 @@
   }
 
   function profileBody(user) {
+    const currentUser = Number(user?.id) === Number(state.user?.id);
     return h("div", { class: "profile-modal-body" }, [
       h("div", { class: "profile-modal-hero" }, [
-        h("span", { class: "avatar profile-modal-avatar" }, initials(user?.name || "User")),
+        h("span", { class: `avatar profile-modal-avatar presence-avatar presence-${user?.messenger_status || "offline"}` }, initials(user?.name || "User")),
         h("div", {}, [
           h("h3", {}, user?.name || "User"),
           h("p", {}, user?.email || user?.login || ""),
@@ -1186,13 +1284,27 @@
       h("div", { class: "profile-detail-grid" }, [
         profileDetail("Login", user?.login || "Not set", "UserRound"),
         profileDetail("Email", user?.email || "Not set", "Mail"),
-        profileDetail("Status", user?.active ? "Active" : "Inactive", "Activity"),
+        profileDetail("Account", user?.active ? "Active" : "Inactive", "Activity"),
         profileDetail("Created", formatDate(user?.created_at) || "Not available", "Calendar"),
       ]),
+      currentUser ? accountSettingsForm(user) : null,
       h("div", { class: "modal-actions profile-modal-actions" }, [
         isAdmin() ? h("button", { type: "button", class: "btn btn-outline", onclick: () => { const current = state.users.find((item) => item.id === user?.id) || user; openModal("role", current); } }, [icon("Edit"), "Edit account"]) : null,
         h("button", { type: "button", class: "btn btn-primary", onclick: closeModal }, "Done"),
       ]),
+    ]);
+  }
+
+  function accountSettingsForm(user) {
+    return h("form", { class: "account-settings-form", onsubmit: saveOwnAccount }, [
+      h("div", { class: "account-settings-head" }, [
+        h("span", {}, [icon("ShieldCheck", 16)]),
+        h("div", {}, [h("strong", {}, "Account security"), h("small", {}, "Update your password.")]),
+      ]),
+      h("div", { class: "form-grid account-settings-grid" }, [
+        field("New password", inputWrap("Lock", h("input", { name: "password", type: "password", placeholder: "Leave blank to keep current", minlength: "8", autocomplete: "new-password" }))),
+      ]),
+      h("button", { type: "submit", class: "btn btn-primary account-save-btn" }, [icon("Check"), "Save changes"]),
     ]);
   }
 
@@ -1269,9 +1381,13 @@
   }
 
   function chatterForm(chatter) {
+    const chatterProject = chatter?.project_id ? state.projects.find((project) => Number(project.id) === Number(chatter.project_id)) : null;
     return h("form", { class: "form-grid chatter-modal-form", onsubmit: (event) => saveChatter(event, chatter) }, [
       field("Name", inputWrap("MessagesSquare", h("input", { name: "name", value: chatter?.name || "", placeholder: "Enter chatter name", required: true }))),
-      field("Project", inputWrap("FolderKanban", selectProjects("project_id", "No project", chatter?.project_id))),
+      chatter ? field("Project", inputWrap("FolderKanban", h("div", { class: "readonly-field" }, [
+        h("span", { class: "readonly-field-label" }, chatterProject?.name || "No project"),
+        h("small", {}, "Linked project only"),
+      ]))) : field("Project", inputWrap("FolderKanban", selectProjects("project_id", "No project"))),
       field("Member", inputWrap("UserPlus", selectUsersMulti("member_ids", "Optional members", chatter?.members?.map((user) => user.id) || []))),
       h("div", { class: "modal-actions form-span user-modal-footer" }, [
         h("button", { type: "button", class: "btn btn-soft", onclick: closeModal }, "Cancel"),
@@ -1302,7 +1418,6 @@
       field("Name", inputWrap("UserRound", h("input", { name: "name", value: user.name || "", placeholder: "Enter full name", required: true }))),
       field("Email", inputWrap("Mail", h("input", { name: "email", type: "email", value: user.email || "", placeholder: "name@company.com", required: true }))),
       field("Password", inputWrap("Lock", h("input", { name: "password", type: "password", placeholder: "Leave blank to keep current password", minlength: "8", autocomplete: "new-password" }))),
-      field("Status", inputWrap("Activity", select("active", [{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }], user.active ? "true" : "false"))),
       field("Role", inputWrap("Users", roleSelect("role", normalizeRole(roles(user)[0] || "customer")))),
       h("div", { class: "modal-actions form-span user-modal-footer" }, [
         h("button", { type: "button", class: "btn btn-soft", onclick: closeModal }, "Cancel"),
@@ -1374,7 +1489,7 @@
     await run(async () => {
       const payload = {
         name: data.name,
-        project_id: data.project_id ? Number(data.project_id) : null,
+        project_id: chatter ? (chatter.project_id ? Number(chatter.project_id) : null) : (data.project_id ? Number(data.project_id) : null),
         member_ids: Array.from(new Set(memberIds)),
       };
       if (chatter) await apiClient.put(`/api/chatters/${chatter.id}`, payload);
@@ -1390,6 +1505,7 @@
       state.activeChatter = id;
       state.mention = { open: false, query: "" };
       state.messages = await apiClient.get(`/api/chatters/${id}/messages`);
+      markChatterReadLocally(id);
       state.scrollMessagesBottom = true;
       render();
     } catch (err) {
@@ -1400,10 +1516,15 @@
     }
   }
 
+  function markChatterReadLocally(chatterId) {
+    state.chatters = state.chatters.map((chatter) => Number(chatter.id) === Number(chatterId) ? { ...chatter, unread_count: 0 } : chatter);
+  }
+
   async function openChatter(id) {
     if (state.tab === "chatters" && state.activeChatter === id) return;
     state.activeChatter = id;
     state.tab = "chatters";
+    state.pendingAttachment = null;
     localStorage.setItem("anochat_tab", "chatters");
     state.scrollMessagesBottom = true;
     await run(() => loadTab("chatters"));
@@ -1419,7 +1540,7 @@
       return;
     }
     const data = new FormData(event.target);
-    const file = data.get("file");
+    const file = state.pendingAttachment || data.get("file");
     const attachmentIds = [];
     state.sendingMessage = true;
     state.error = "";
@@ -1437,6 +1558,7 @@
       const savedMessage = await apiClient.post(`/api/chatters/${chatterId}/messages`, { body, attachment_ids: attachmentIds });
       event.target.reset();
       state.composerBody = "";
+      state.pendingAttachment = null;
       state.mention = { open: false, query: "" };
       if (state.activeChatter === chatterId) {
         state.messages = state.messages.concat(savedMessage);
@@ -1539,6 +1661,61 @@
     }, "User created.");
   }
 
+  async function saveOwnAccount(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target).entries());
+    const password = String(data.password || "").trim();
+    if (!password) {
+      toast("Enter a new password to save.", "error");
+      render();
+      return;
+    }
+    if (password && password.length < 8) {
+      toast("Password must be at least 8 characters.", "error");
+      render();
+      return;
+    }
+    await run(async () => {
+      const payload = { password };
+      const updated = await apiClient.put(`/api/users/${state.user.id}`, payload);
+      state.user = updated;
+      state.modal = { type: "profile", data: updated };
+      if (state.users.length) state.users = state.users.map((user) => user.id === updated.id ? updated : user);
+      state.chatters = state.chatters.map((chatter) => ({
+        ...chatter,
+        members: (chatter.members || []).map((member) => member.id === updated.id ? updated : member),
+      }));
+    }, "Password updated.");
+  }
+
+  async function savePresenceStatus(status) {
+    const value = String(status || "offline").toLowerCase();
+    if (!["online", "away", "busy", "offline"].includes(value)) {
+      toast("Choose a valid presence status.", "error");
+      render();
+      return;
+    }
+    state.presenceOpen = false;
+    render();
+    try {
+      const updated = await apiClient.put(`/api/users/${state.user.id}`, { messenger_status: value });
+      state.user = updated;
+      if (state.modal?.type === "profile") state.modal = { type: "profile", data: updated };
+      if (state.users.length) state.users = state.users.map((user) => user.id === updated.id ? updated : user);
+      state.chatters = state.chatters.map((chatter) => ({
+        ...chatter,
+        members: (chatter.members || []).map((member) => member.id === updated.id ? updated : member),
+      }));
+      broadcastPresenceChange(updated);
+      await refreshPresenceData(true);
+      toast("Status updated.", "success");
+    } catch (err) {
+      const message = err.message || String(err);
+      toast(message, "error");
+      render();
+    }
+  }
+
   function isValidEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || ""));
   }
@@ -1587,7 +1764,6 @@
         name: String(data.name).trim(),
         email,
         login: email,
-        active: data.active === "true",
         roles: [data.role],
       };
       if (String(data.password || "").trim()) payload.password = data.password;
@@ -1646,7 +1822,7 @@
     }, "Inbound email recorded.");
   }
 
-  function page(children) { return h("main", { class: "page" }, children); }
+  function page(children, className) { return h("main", { class: className ? `page ${className}` : "page" }, children); }
   function cardHeader(title, subtitle, actionLabel, action) {
     return h("div", { class: "card-head" }, [
       h("div", {}, [h("h2", {}, title), subtitle ? h("p", { class: "muted" }, subtitle) : null]),
@@ -1656,7 +1832,19 @@
   function metaItem(label, value) { return h("div", {}, [h("span", {}, label), h("strong", {}, value)]); }
   function field(label, input) { return h("label", { class: "field" }, [h("span", {}, label), input]); }
   function searchBox(placeholder, key) {
-    return h("label", { class: "search-box" }, [icon("Search"), h("input", { placeholder, value: state.filters[key], oninput: (e) => { state.filters[key] = e.target.value; render(); } })]);
+    return h("label", { class: "search-box" }, [
+      icon("Search"),
+      h("input", {
+        type: "search",
+        placeholder,
+        value: state.filters[key] || "",
+        autocomplete: "off",
+        oninput: (e) => {
+          state.filters[key] = e.target.value;
+          render();
+        },
+      }),
+    ]);
   }
   function filterSelect(key, values, label) {
     return h("label", { class: "filter-select" }, [
@@ -1884,6 +2072,12 @@
     while (size >= 1024 && index < units.length - 1) { size = size / 1024; index += 1; }
     return `${size.toFixed(index ? 1 : 0)} ${units[index]}`;
   }
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === "anochat_presence_changed" && apiClient.token() && state.user) {
+      refreshPresenceData(true);
+    }
+  });
 
   if (apiClient.token()) bootstrap();
   else render();

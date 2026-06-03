@@ -83,6 +83,8 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     data = payload.model_dump(exclude_unset=True)
     roles = data.pop("roles", None)
     password = data.pop("password", None)
+    if "messenger_status" in data and data["messenger_status"] not in {"online", "away", "busy", "offline"}:
+        raise HTTPException(status_code=400, detail="Select a valid presence status")
     was_active = user.active
     for key, value in data.items():
         setattr(user, key, value)
