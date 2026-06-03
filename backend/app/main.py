@@ -81,6 +81,7 @@ def ensure_runtime_schema() -> None:
         "is_deleted": f"ALTER TABLE messages ADD COLUMN is_deleted BOOLEAN DEFAULT {deleted_default}",
         "deleted_by_id": "ALTER TABLE messages ADD COLUMN deleted_by_id INTEGER",
         "deleted_at": f"ALTER TABLE messages ADD COLUMN deleted_at {deleted_at_type}",
+        "reply_to_id": "ALTER TABLE messages ADD COLUMN reply_to_id INTEGER",
     }
     with engine.begin() as connection:
         for column, statement in additions.items():

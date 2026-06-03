@@ -145,10 +145,12 @@ class Message(TimestampMixin, Base):
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     deleted_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reply_to_id: Mapped[int | None] = mapped_column(ForeignKey("messages.id", ondelete="SET NULL"), index=True)
 
     chatter: Mapped[Chatter] = relationship(back_populates="messages", lazy="selectin")
     sender: Mapped[User] = relationship(foreign_keys=[sender_id], lazy="selectin")
     deleted_by: Mapped[User | None] = relationship(foreign_keys=[deleted_by_id], lazy="selectin")
+    reply_to: Mapped["Message | None"] = relationship("Message", remote_side=[id], lazy="selectin")
     attachments: Mapped[list["Attachment"]] = relationship(secondary=message_attachments, lazy="selectin")
     seen_by: Mapped[list[User]] = relationship(secondary=message_seen, lazy="selectin")
 

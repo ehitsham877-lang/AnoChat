@@ -113,7 +113,13 @@ def create_message(chatter_id: int, payload: MessageCreate, db: Session = Depend
     chatter = get_or_404(db, Chatter, chatter_id)
     assert_chatter_access(current_user, chatter)
     sanitized_body = payload.body if is_admin(current_user) else sanitize_chatter_message(payload.body)
-    message = Message(chatter_id=chatter_id, sender_id=current_user.id, body=sanitized_body, original_body=payload.body, message_type=payload.message_type)
+    reply_to_id = None
+    if payload.reply_to_id:
+        replied = get_or_404(db, Message, payload.reply_to_id)
+        if replied.chatter_id != chatter_id:
+            raise HTTPException(status_code=400, detail="Reply message belongs to another chatter")
+        reply_to_id = replied.id
+    message = Message(chatter_id=chatter_id, sender_id=current_user.id, body=sanitized_body, original_body=payload.body, message_type=payload.message_type, reply_to_id=reply_to_id)
     if payload.attachment_ids:
         message.attachments = db.query(Attachment).filter(Attachment.id.in_(payload.attachment_ids)).all()
     chatter.last_message_preview = sanitized_body[:512]

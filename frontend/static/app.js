@@ -38,6 +38,7 @@
     sendingMessage: false,
     composerBody: "",
     pendingAttachment: null,
+    replyTo: null,
     mention: { open: false, query: "" },
     renderCycle: 0,
     filters: { projectSearch: "", projectStatus: "all", projectPriority: "all", logSearch: "", logType: "all", userSearch: "", chatterSearch: "" },
@@ -475,7 +476,7 @@
       apiClient.clearToken();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [],
-        activityLogs: [], emailLogs: [], stats: null, activeChatter: null, modal: null,
+        activityLogs: [], emailLogs: [], stats: null, activeChatter: null, replyTo: null, modal: null,
         lastMessageSignature: "", refreshingMessages: false,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
       });
@@ -492,6 +493,7 @@
     state.mobileSidebarOpen = false;
     state.loading = true;
     state.error = "";
+    if (tab !== "chatters") state.replyTo = null;
     render();
     try {
       await loadTab(tab);
@@ -561,8 +563,11 @@
     return JSON.stringify((messages || []).map((message) => [
       message.id,
       message.body,
+      message.reply_to_id || "",
+      message.reply_to_body || "",
       message.updated_at || message.created_at || "",
       message.is_deleted || false,
+      (message.seen_by || []).map((user) => user.id).sort().join(","),
       (message.attachments || []).map((attachment) => attachment.id).join(","),
     ]));
   }
@@ -608,6 +613,12 @@
       state.user = me;
       state.users = users;
       state.chatters = chatters;
+      if (state.activeChatter && !state.chatters.some((item) => Number(item.id) === Number(state.activeChatter))) {
+        state.activeChatter = state.chatters[0]?.id || null;
+      }
+      if (state.tab === "chatters" && state.activeChatter && !state.sendingMessage) {
+        state.messages = await apiClient.get(`/api/chatters/${state.activeChatter}/messages`);
+      }
       if (state.activeChatter) markChatterReadLocally(state.activeChatter);
       if (!state.modal || state.modal.type === "profile") {
         if (state.modal?.type === "profile") state.modal = { type: "profile", data: me };
@@ -640,7 +651,7 @@
       apiClient.clearToken();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [],
-        activityLogs: [], emailLogs: [], stats: null, activeChatter: null, modal: null,
+        activityLogs: [], emailLogs: [], stats: null, activeChatter: null, replyTo: null, modal: null,
         lastMessageSignature: "", refreshingMessages: false,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
       });
@@ -944,25 +955,90 @@
     const deletedNote = message.is_deleted && isAdmin()
       ? `This message was deleted by ${deletedByCurrentUser ? "you" : (message.deleted_by_name || userName(message.deleted_by_id) || "a user")}.`
       : "";
-    return h("div", { class: own ? "message-row own" : "message-row" }, [
+    return h("div", { class: own ? "message-row own" : "message-row", id: `message-${message.id}` }, [
       h("div", { class: "message-stack" }, [
         h("div", { class: `${message.is_deleted ? "bubble deleted-message" : "bubble"}${hasAttachments ? " attachment-bubble" : ""}` }, [
           h("div", { class: "bubble-meta" }, [
             h("strong", {}, userName(message.sender_id)),
-            !message.is_deleted && (own || isAdmin()) ? h("button", { class: "delete-link", title: "Delete message", "aria-label": "Delete message", onclick: () => confirmAction("Delete message?", "This message will be removed.", () => deleteMessage(message.id)) }, [icon("Trash", 14)]) : null,
+            h("span", { class: "message-actions" }, [
+              !message.is_deleted ? h("button", { class: "message-action reply-action", title: "Reply", "aria-label": "Reply to message", onclick: () => startReply(message) }, [icon("MessageCircle", 14)]) : null,
+              !message.is_deleted && (own || isAdmin()) ? h("button", { class: "delete-link", title: "Delete message", "aria-label": "Delete message", onclick: () => confirmAction("Delete message?", "This message will be removed.", () => deleteMessage(message.id)) }, [icon("Trash", 14)]) : null,
+            ]),
           ]),
+          message.reply_to_id ? replyPreview(message) : null,
           bodyText ? h("p", {}, bodyText) : null,
           hasAttachments ? h("div", { class: "attachment-strip" }, message.attachments.map(messageAttachment)) : null,
         ]),
         deletedNote ? h("small", { class: "deleted-message-note" }, [icon("Trash", 12), h("span", {}, deletedNote)]) : null,
         h("time", { class: "message-time" }, formatDate(message.created_at)),
+        own && !message.is_deleted ? messageSeenReceipt(message) : null,
       ]),
     ]);
+  }
+
+  function replyPreview(message) {
+    return h("button", { type: "button", class: "reply-preview", onclick: () => scrollToMessage(message.reply_to_id), title: "Referenced message" }, [
+      h("strong", {}, message.reply_to_sender_name || userName(message.reply_to_sender_id) || "Message"),
+      h("span", {}, message.reply_to_body || "Attachment"),
+    ]);
+  }
+
+  function messageSeenReceipt(message) {
+    const viewers = messageSeenViewers(message);
+    if (!viewers.length) return null;
+    const names = viewers.map((user) => user.name || user.login || user.email || `User ${user.id}`);
+    const preview = names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
+    return h("small", { class: "message-seen-receipt", title: `Seen by ${names.join(", ")}` }, [
+      icon("Eye", 12),
+      h("span", {}, `Seen by ${preview}`),
+    ]);
+  }
+
+  function messageSeenViewers(message) {
+    const seen = Array.isArray(message.seen_by) ? message.seen_by : [];
+    const seenIds = new Set();
+    return seen.filter((user) => {
+      const id = Number(user?.id);
+      if (!id || id === Number(state.user?.id) || id === Number(message.sender_id) || seenIds.has(id)) return false;
+      seenIds.add(id);
+      return true;
+    });
+  }
+
+  function startReply(message) {
+    state.replyTo = message;
+    render();
+    window.setTimeout(() => {
+      const input = document.querySelector(".composer input[name='body']");
+      if (input) input.focus();
+    }, 0);
+  }
+
+  function clearReply() {
+    state.replyTo = null;
+    render();
+  }
+
+  function replySnippet(message) {
+    if (!message) return "";
+    const text = String(message.body || "").trim();
+    const fallback = message.attachments && message.attachments.length ? "Attachment" : "Message";
+    return (text || fallback).slice(0, 140);
+  }
+
+  function scrollToMessage(id) {
+    if (!id) return;
+    const target = document.getElementById(`message-${id}`);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.classList.add("message-row-highlight");
+    window.setTimeout(() => target.classList.remove("message-row-highlight"), 1100);
   }
 
   function messageComposer() {
     const active = state.chatters.find((item) => item.id === state.activeChatter);
     return h("form", { class: "composer", onsubmit: sendMessage }, [
+      state.replyTo ? replyComposerPreview() : null,
       h("div", { class: "composer-input-wrap mention-anchor" }, [
         icon("MessageCircle", 18),
         h("input", { name: "body", value: state.composerBody, placeholder: "Write a message...", autocomplete: "off", oninput: updateComposerText, onkeydown: handleComposerKeydown }),
@@ -978,6 +1054,17 @@
     return h("button", { type: "button", class: image ? "attachment-preview-card" : "attachment-pill", title: file.filename || "Attachment", onclick: () => downloadAttachment(file) }, [
       image ? imagePreview(file, "message-image-preview") : icon("Paperclip", 14),
       h("span", {}, file.filename),
+    ]);
+  }
+
+  function replyComposerPreview() {
+    const message = state.replyTo;
+    return h("div", { class: "composer-reply-preview" }, [
+      h("span", {}, [
+        h("strong", {}, `Replying to ${userName(message.sender_id) || "message"}`),
+        h("small", {}, replySnippet(message)),
+      ]),
+      h("button", { type: "button", title: "Cancel reply", "aria-label": "Cancel reply", onclick: clearReply }, [icon("X", 14)]),
     ]);
   }
 
@@ -1590,6 +1677,7 @@
     try {
       state.activeChatter = id;
       state.mention = { open: false, query: "" };
+      state.replyTo = null;
       state.messages = await apiClient.get(`/api/chatters/${id}/messages`);
       state.lastMessageSignature = messageSignature(state.messages);
       markChatterReadLocally(id);
@@ -1612,6 +1700,7 @@
     state.activeChatter = id;
     state.tab = "chatters";
     state.pendingAttachment = null;
+    state.replyTo = null;
     localStorage.setItem("anochat_tab", "chatters");
     state.scrollMessagesBottom = true;
     await run(() => loadTab("chatters"));
@@ -1642,10 +1731,12 @@
       const body = data.get("body") || (attachmentIds.length ? "Attachment" : "");
       if (!body.trim() && !attachmentIds.length) throw new Error("Write a message or attach a file.");
       if (hasContactDetails(body)) toast("Contact details are not allowed in chatter and will be hidden.", "success");
-      const savedMessage = await apiClient.post(`/api/chatters/${chatterId}/messages`, { body, attachment_ids: attachmentIds });
+      const replyToId = state.replyTo && Number(state.replyTo.chatter_id) === Number(chatterId) ? state.replyTo.id : null;
+      const savedMessage = await apiClient.post(`/api/chatters/${chatterId}/messages`, { body, attachment_ids: attachmentIds, reply_to_id: replyToId });
       event.target.reset();
       state.composerBody = "";
       state.pendingAttachment = null;
+      state.replyTo = null;
       state.mention = { open: false, query: "" };
       if (state.activeChatter === chatterId) {
         state.messages = state.messages.concat(savedMessage);

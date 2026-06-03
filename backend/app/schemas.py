@@ -167,6 +167,7 @@ class MessageCreate(BaseModel):
     body: str
     message_type: str = "text"
     attachment_ids: list[int] = Field(default_factory=list)
+    reply_to_id: int | None = None
 
 
 class MessageUpdate(BaseModel):
@@ -202,6 +203,10 @@ class MessageOut(BaseModel):
     deleted_by_id: int | None = None
     deleted_by_name: str | None = None
     deleted_at: datetime | None = None
+    reply_to_id: int | None = None
+    reply_to_sender_id: int | None = None
+    reply_to_sender_name: str | None = None
+    reply_to_body: str | None = None
     created_at: datetime
 
 

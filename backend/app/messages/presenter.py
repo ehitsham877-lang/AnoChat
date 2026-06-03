@@ -25,4 +25,28 @@ def message_out(message: Message, current_user: User) -> dict:
         "deleted_by_id": message.deleted_by_id,
         "deleted_by_name": deleted_by.name if deleted_by else None,
         "deleted_at": message.deleted_at,
+        **reply_preview(message, current_user),
+    }
+
+
+def reply_preview(message: Message, current_user: User) -> dict:
+    replied = message.reply_to
+    if not replied:
+        return {
+            "reply_to_id": None,
+            "reply_to_sender_id": None,
+            "reply_to_sender_name": None,
+            "reply_to_body": None,
+        }
+    admin = is_admin(current_user)
+    sender_admin = is_admin(replied.sender)
+    body = (replied.original_body or replied.body) if (admin or sender_admin) else replied.body
+    if replied.is_deleted and not admin:
+        deleted_by_admin = bool(replied.deleted_by and is_admin(replied.deleted_by))
+        body = "This message has been deleted by admin" if deleted_by_admin else "This message has been deleted"
+    return {
+        "reply_to_id": replied.id,
+        "reply_to_sender_id": replied.sender_id,
+        "reply_to_sender_name": replied.sender.name if replied.sender else None,
+        "reply_to_body": body,
     }
