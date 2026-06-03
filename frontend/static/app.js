@@ -421,6 +421,7 @@
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target).entries());
     payload.login = String(payload.login || "").trim().toLowerCase();
+    payload.password = String(payload.password || "").trim();
     if (!payload.login || !payload.password) {
       toast("Enter your login and password.", "error");
       render();
