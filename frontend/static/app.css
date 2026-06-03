@@ -1820,7 +1820,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   max-width: 100%;
   min-width: 0;
   gap: 9px;
-  padding: 14px 46px 14px 16px;
+  padding: 14px 76px 14px 16px;
   border-radius: 22px 22px 22px 8px;
   background: #ffffff;
   box-shadow: 0 14px 34px rgba(15,23,42,.06);
@@ -1885,7 +1885,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .reply-action {
   position: absolute;
   top: 12px;
-  right: 44px;
+  right: 46px;
   width: 26px;
   height: 26px;
   display: grid;
@@ -2014,7 +2014,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .delete-link {
   position: absolute;
   top: 12px;
-  right: 12px;
+  right: 14px;
   width: 26px;
   height: 26px;
   flex: 0 0 26px;
@@ -4159,6 +4159,15 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   }
   .message-stream {
     min-height: min(300px, 46svh);
+  }
+  .bubble {
+    padding-right: 68px;
+  }
+  .reply-action {
+    right: 42px;
+  }
+  .delete-link {
+    right: 10px;
   }
   .monitoring-feed {
     max-height: none;
