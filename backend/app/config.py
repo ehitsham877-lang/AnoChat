@@ -21,6 +21,7 @@ class Settings(BaseSettings):
         "video/mp4,video/" + "webm,video/ogg"
     )
     cors_origins: str = "http://localhost:8000,http://127.0.0.1:8000,http://localhost:5173"
+    cors_origin_regex: str = r"https://.*\.(vercel\.app|trycloudflare\.com)"
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = "Admin123!"
     seed_customer_email: str = "customer@example.com"
