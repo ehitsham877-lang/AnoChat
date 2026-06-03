@@ -24,6 +24,9 @@
     notificationsOpen: false,
     presenceOpen: false,
     presenceSyncTimer: null,
+    messageSyncTimer: null,
+    refreshingMessages: false,
+    lastMessageSignature: "",
     files: [],
     activityLogs: [],
     emailLogs: [],
@@ -438,6 +441,7 @@
       localStorage.setItem("anochat_tab", "dashboard");
       broadcastPresenceChange(state.user);
       startPresenceSync();
+      startMessageSync();
       state.loading = false;
       toast("Signed in.", "success");
       render();
@@ -467,10 +471,12 @@
       try { await apiClient.post("/api/auth/logout", {}); } catch (_) {}
       if (loggedOutUser) broadcastPresenceChange({ ...loggedOutUser, messenger_status: "offline" });
       stopPresenceSync();
+      stopMessageSync();
       apiClient.clearToken();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [],
         activityLogs: [], emailLogs: [], stats: null, activeChatter: null, modal: null,
+        lastMessageSignature: "", refreshingMessages: false,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
       });
     });
@@ -540,6 +546,57 @@
     state.presenceSyncTimer = null;
   }
 
+  function startMessageSync() {
+    stopMessageSync();
+    state.messageSyncTimer = window.setInterval(() => refreshActiveChatterMessages(true), 3000);
+  }
+
+  function stopMessageSync() {
+    if (state.messageSyncTimer) window.clearInterval(state.messageSyncTimer);
+    state.messageSyncTimer = null;
+    state.refreshingMessages = false;
+  }
+
+  function messageSignature(messages) {
+    return JSON.stringify((messages || []).map((message) => [
+      message.id,
+      message.body,
+      message.updated_at || message.created_at || "",
+      message.is_deleted || false,
+      (message.attachments || []).map((attachment) => attachment.id).join(","),
+    ]));
+  }
+
+  async function refreshActiveChatterMessages(silent) {
+    if (!apiClient.token() || !state.user || state.tab !== "chatters" || !state.activeChatter || state.refreshingMessages || state.sendingMessage) return;
+    const chatterId = state.activeChatter;
+    state.refreshingMessages = true;
+    try {
+      const [chatters, messages] = await Promise.all([
+        apiClient.get("/api/chatters"),
+        apiClient.get(`/api/chatters/${chatterId}/messages`),
+      ]);
+      if (state.activeChatter !== chatterId || state.tab !== "chatters") return;
+      const nextSignature = messageSignature(messages);
+      const previousCount = state.messages.length;
+      const previousLast = state.messages[state.messages.length - 1]?.id || null;
+      const nextLast = messages[messages.length - 1]?.id || null;
+      const changed = nextSignature !== state.lastMessageSignature;
+      state.chatters = chatters;
+      markChatterReadLocally(chatterId);
+      if (changed) {
+        state.messages = messages;
+        state.lastMessageSignature = nextSignature;
+        if (previousLast !== nextLast || messages.length > previousCount) state.scrollMessagesBottom = true;
+        render();
+      }
+    } catch (err) {
+      if (!silent) toast(err.message || "Could not refresh chatter messages.", "error");
+    } finally {
+      state.refreshingMessages = false;
+    }
+  }
+
   async function refreshPresenceData(silent) {
     if (!apiClient.token() || !state.user) return;
     try {
@@ -576,12 +633,15 @@
     try {
       await loadAll();
       startPresenceSync();
+      startMessageSync();
     } catch (err) {
       stopPresenceSync();
+      stopMessageSync();
       apiClient.clearToken();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [],
         activityLogs: [], emailLogs: [], stats: null, activeChatter: null, modal: null,
+        lastMessageSignature: "", refreshingMessages: false,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
       });
       toast("Session expired. Please sign in again.", "error");
@@ -610,6 +670,7 @@
     if (!state.activeChatter && state.chatters.length) state.activeChatter = state.chatters[0].id;
     if (state.activeChatter && !state.chatters.some((item) => item.id === state.activeChatter)) state.activeChatter = state.chatters[0]?.id || null;
     state.messages = state.activeChatter ? await apiClient.get(`/api/chatters/${state.activeChatter}/messages`) : [];
+    state.lastMessageSignature = messageSignature(state.messages);
     if (state.activeChatter) markChatterReadLocally(state.activeChatter);
   }
   async function loadMonitoringSoft() { if (canManage()) await loadMonitoring(); }
@@ -1530,6 +1591,7 @@
       state.activeChatter = id;
       state.mention = { open: false, query: "" };
       state.messages = await apiClient.get(`/api/chatters/${id}/messages`);
+      state.lastMessageSignature = messageSignature(state.messages);
       markChatterReadLocally(id);
       state.scrollMessagesBottom = true;
       render();
@@ -1593,6 +1655,7 @@
           current.last_message_author_id = savedMessage.sender_id;
         }
         if (attachmentIds.length) state.messages = await apiClient.get(`/api/chatters/${chatterId}/messages`);
+        state.lastMessageSignature = messageSignature(state.messages);
         state.activeChatter = chatterId;
       }
       state.scrollMessagesBottom = true;
@@ -1611,6 +1674,7 @@
     try {
       const deleted = await apiClient.del(`/api/messages/${id}`);
       state.messages = state.messages.map((message) => message.id === id ? deleted : message);
+      state.lastMessageSignature = messageSignature(state.messages);
       if (chatterId) {
         const current = state.chatters.find((item) => item.id === chatterId);
         const visibleMessages = state.messages;
@@ -2102,6 +2166,10 @@
     if (event.key === "anochat_presence_changed" && apiClient.token() && state.user) {
       refreshPresenceData(true);
     }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshActiveChatterMessages(true);
   });
 
   if (apiClient.token()) bootstrap();
