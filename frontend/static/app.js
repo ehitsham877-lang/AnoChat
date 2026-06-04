@@ -364,12 +364,10 @@
   }
 
   function moduleBadgeCount(key) {
-    const notificationCount = moduleNotificationCount(key);
     if (key === "chatters") {
-      const unreadMessages = state.chatters.reduce((total, chatter) => total + Number(chatter.unread_count || 0), 0);
-      return Math.max(notificationCount, unreadMessages);
+      return state.chatters.reduce((total, chatter) => total + Number(chatter.unread_count || 0), 0);
     }
-    return notificationCount;
+    return moduleNotificationCount(key);
   }
 
   function moduleNotificationCount(key) {
@@ -382,8 +380,8 @@
 
   function notificationModuleKey(item) {
     const text = [item.title, item.body].join(" ").toLowerCase();
-    if (/\b(project|invoice|deadline|task)\b/.test(text)) return "projects";
     if (/\b(chatter|conversation|message|chat|attachment|file)\b/.test(text)) return "chatters";
+    if (/\b(project|invoice|deadline|task)\b/.test(text)) return "projects";
     if (/\b(user|role|account|access|customer|developer|manager)\b/.test(text)) return "users";
     if (/\b(login|audit|activity|monitor|operation|system)\b/.test(text)) return "monitoring";
     return "dashboard";
@@ -585,7 +583,7 @@
 
   function startPresenceSync() {
     stopPresenceSync();
-    state.presenceSyncTimer = window.setInterval(() => refreshPresenceData(true), 8000);
+    state.presenceSyncTimer = window.setInterval(() => refreshPresenceData(true), 4000);
   }
 
   function stopPresenceSync() {
@@ -635,6 +633,7 @@
       const nextLast = messages[messages.length - 1]?.id || null;
       const changed = nextSignature !== state.lastMessageSignature;
       state.chatters = chatters;
+      markChatterReadLocally(chatterId);
       state.notifications = notifications;
       const badgesChanged = sidebarBadgeSignature() !== previousBadgeSignature;
       if (changed) {
@@ -670,6 +669,7 @@
       }
       if (state.tab === "chatters" && state.activeChatter && !state.sendingMessage) {
         state.messages = await apiClient.get(`/api/chatters/${state.activeChatter}/messages`);
+        markChatterReadLocally(state.activeChatter);
       }
       if (!state.modal || state.modal.type === "profile") {
         if (state.modal?.type === "profile") state.modal = { type: "profile", data: me };
@@ -732,7 +732,15 @@
     if (!state.activeChatter && state.chatters.length) state.activeChatter = state.chatters[0].id;
     if (state.activeChatter && !state.chatters.some((item) => item.id === state.activeChatter)) state.activeChatter = state.chatters[0]?.id || null;
     state.messages = state.activeChatter ? await apiClient.get(`/api/chatters/${state.activeChatter}/messages`) : [];
+    markChatterReadLocally(state.activeChatter);
     state.lastMessageSignature = messageSignature(state.messages);
+  }
+
+  function markChatterReadLocally(chatterId) {
+    if (!chatterId) return;
+    state.chatters = state.chatters.map((chatter) => (
+      Number(chatter.id) === Number(chatterId) ? { ...chatter, unread_count: 0 } : chatter
+    ));
   }
   async function loadMonitoringSoft() { if (canManage()) await loadMonitoring(); }
   async function loadMonitoring() {
@@ -1765,6 +1773,7 @@
       state.mention = { open: false, query: "" };
       state.replyTo = null;
       state.messages = await apiClient.get(`/api/chatters/${id}/messages`);
+      markChatterReadLocally(id);
       state.lastMessageSignature = messageSignature(state.messages);
       state.scrollMessagesBottom = true;
       render();
