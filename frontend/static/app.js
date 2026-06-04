@@ -72,6 +72,7 @@
       ChevronLeft: '<path d="m15 18-6-6 6-6"/>',
       ChevronRight: '<path d="m9 18 6-6-6-6"/>',
       ChevronsUpDown: '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
+      Download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>',
       Edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
       Eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
       FolderKanban: '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M8 10v4"/><path d="M12 10v2"/><path d="M16 10v6"/>',
@@ -920,7 +921,7 @@
         h("span", {}, [h("strong", {}, member.name || member.email), h("small", {}, displayRoles(member).join(", ") || "Member")]),
       ]))) : h("div", { class: "conversation-details-empty" }, "No members assigned."),
       h("div", { class: "chat-info-section-title" }, [icon("Image", 14), h("span", {}, "Shared photos/screenshots")]),
-      images.length ? h("div", { class: "chat-info-media-grid" }, images.slice(0, 9).map((file) => h("button", { type: "button", onclick: () => downloadAttachment(file) }, [
+      images.length ? h("div", { class: "chat-info-media-grid" }, images.slice(0, 9).map((file) => h("button", { type: "button", onclick: () => openImagePreview(file) }, [
         imagePreview(file, "chat-info-image"),
         h("span", {}, file.filename || "Image"),
       ]))) : h("div", { class: "conversation-details-empty" }, "No shared images."),
@@ -1051,10 +1052,15 @@
 
   function messageAttachment(file) {
     const image = isImageFile(file);
-    return h("button", { type: "button", class: image ? "attachment-preview-card" : "attachment-pill", title: file.filename || "Attachment", onclick: () => downloadAttachment(file) }, [
+    return h("button", { type: "button", class: image ? "attachment-preview-card" : "attachment-pill", title: file.filename || "Attachment", onclick: () => image ? openImagePreview(file) : downloadAttachment(file) }, [
       image ? imagePreview(file, "message-image-preview") : icon("Paperclip", 14),
       h("span", {}, file.filename),
     ]);
+  }
+
+  function openImagePreview(file) {
+    state.modal = { type: "imagePreview", file };
+    render();
   }
 
   function replyComposerPreview() {
@@ -1082,7 +1088,8 @@
   async function ensureVisibleImagePreviews() {
     const files = []
       .concat(state.messages.flatMap((message) => message.attachments || []))
-      .concat(state.files || []);
+      .concat(state.files || [])
+      .concat(state.modal?.type === "imagePreview" && state.modal.file ? [state.modal.file] : []);
     const unique = new Map(files.filter(isImageFile).map((file) => [file.id, file]));
     unique.forEach(async (file) => {
       if (Object.prototype.hasOwnProperty.call(state.attachmentPreviews, file.id) || state.loadingPreviews.has(file.id)) return;
@@ -1395,7 +1402,7 @@
   function modalView() {
     const modal = state.modal;
     return h("div", { class: "modal-backdrop", onclick: closeModal }, [
-      h("section", { class: modal.type === "chatterDetails" ? "modal chatter-detail-modal" : "modal", onclick: (event) => event.stopPropagation() }, [
+      h("section", { class: modalClass(modal), onclick: (event) => event.stopPropagation() }, [
         h("div", { class: "modal-head" }, [h("h2", {}, modalTitle(modal)), h("button", { class: "icon-btn", onclick: closeModal }, [icon("X")])]),
         modal.type === "project" ? projectForm(modal.data) : null,
         modal.type === "chatter" ? chatterForm(modal.data) : null,
@@ -1403,9 +1410,16 @@
         modal.type === "role" ? roleForm(modal.data) : null,
         modal.type === "profile" ? profileBody(modal.data || state.user) : null,
         modal.type === "chatterDetails" ? chatterDetailsBody(modal.chatter) : null,
+        modal.type === "imagePreview" ? imagePreviewBody(modal.file) : null,
         modal.type === "confirm" ? confirmBody(modal) : null,
       ]),
     ]);
+  }
+
+  function modalClass(modal) {
+    if (modal.type === "chatterDetails") return "modal chatter-detail-modal";
+    if (modal.type === "imagePreview") return "modal image-preview-modal";
+    return "modal";
   }
 
   function modalTitle(modal) {
@@ -1415,6 +1429,7 @@
     if (modal.type === "role") return "Edit User";
     if (modal.type === "profile") return "Account Info";
     if (modal.type === "chatterDetails") return "Chatter Info";
+    if (modal.type === "imagePreview") return modal.file?.filename || "Image preview";
     return modal.title || "Confirm";
   }
 
@@ -1439,6 +1454,27 @@
       h("div", { class: "modal-actions" }, [
         h("button", { type: "button", class: "btn btn-soft", onclick: closeModal }, "Cancel"),
         h("button", { type: "button", class: "btn btn-danger", onclick: async () => { const fn = modal.action; closeModal(); await fn(); } }, "Confirm"),
+      ]),
+    ]);
+  }
+
+  function imagePreviewBody(file) {
+    const src = state.attachmentPreviews[file?.id];
+    return h("div", { class: "image-lightbox-body" }, [
+      h("div", { class: "image-lightbox-frame" }, [
+        src
+          ? h("img", { src, alt: file?.filename || "Image attachment" })
+          : h("div", { class: "image-lightbox-loading" }, [icon("Image", 28), h("span", {}, "Loading image...")]),
+      ]),
+      h("div", { class: "image-lightbox-footer" }, [
+        h("span", {}, [
+          h("strong", {}, file?.filename || "Image attachment"),
+          h("small", {}, `${prettyBytes(file?.size_bytes || 0)} · ${formatDate(file?.created_at)}`),
+        ]),
+        h("button", { type: "button", class: "btn btn-primary image-download-btn", title: "Download image", onclick: () => downloadAttachment(file) }, [
+          icon("Download", 16),
+          h("span", {}, "Download"),
+        ]),
       ]),
     ]);
   }
@@ -1528,8 +1564,9 @@
   }
 
   function detailFile(file) {
-    return h("button", { type: "button", class: "detail-file", onclick: () => downloadAttachment(file) }, [
-      h("span", {}, [icon(String(file.content_type || "").startsWith("image/") ? "Image" : "Paperclip", 16)]),
+    const image = isImageFile(file);
+    return h("button", { type: "button", class: "detail-file", onclick: () => image ? openImagePreview(file) : downloadAttachment(file) }, [
+      h("span", {}, [icon(image ? "Image" : "Paperclip", 16)]),
       h("span", {}, [h("strong", {}, file.filename || "Attachment"), h("small", {}, `${prettyBytes(file.size_bytes || 0)} · ${formatDate(file.created_at)}`)]),
     ]);
   }
