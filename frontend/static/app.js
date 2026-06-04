@@ -367,7 +367,7 @@
     if (key === "chatters") {
       return state.chatters.reduce((total, chatter) => total + Number(chatter.unread_count || 0), 0);
     }
-    return moduleNotificationCount(key);
+    return 0;
   }
 
   function moduleNotificationCount(key) {
