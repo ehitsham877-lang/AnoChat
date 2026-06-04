@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 25 * 1024 * 1024
     allowed_upload_types: str = (
         "image/jpeg,image/png,image/gif,image/" + "webp,image/svg+xml,"
-        "application/pdf,text/plain,text/csv,"
+        "application/pdf,application/json,text/json,text/plain,text/csv,"
+        "application/zip,application/x-zip-compressed,application/x-zip,multipart/x-zip,"
         "application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
         "application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
         "audio/mpeg,audio/ogg,audio/wav,audio/" + "webm,audio/mp4,"

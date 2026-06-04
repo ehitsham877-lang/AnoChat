@@ -16,6 +16,42 @@ from app.schemas import AttachmentOut
 router = APIRouter(prefix="/api/attachments", tags=["attachments"])
 settings = get_settings()
 
+EXTRA_ALLOWED_CONTENT_TYPES = {
+    "application/json": "application/json",
+    "text/json": "application/json",
+    "application/zip": "application/zip",
+    "application/x-zip-compressed": "application/zip",
+    "application/x-zip": "application/zip",
+    "multipart/x-zip": "application/zip",
+    "application/x-compressed": "application/zip",
+    "application/zip-compressed": "application/zip",
+}
+
+EXTENSION_CONTENT_TYPES = {
+    ".json": {"application/json", "text/json", "text/plain", "application/octet-stream"},
+    ".zip": {
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/x-zip",
+        "multipart/x-zip",
+        "application/x-compressed",
+        "application/zip-compressed",
+        "application/octet-stream",
+    },
+}
+
+
+def allowed_content_type(filename: str | None, content_type: str) -> str | None:
+    suffix = Path(filename or "").suffix.lower()
+    extension_types = EXTENSION_CONTENT_TYPES.get(suffix)
+    if extension_types and content_type in extension_types:
+        return "application/json" if suffix == ".json" else "application/zip"
+    if content_type in EXTRA_ALLOWED_CONTENT_TYPES:
+        return EXTRA_ALLOWED_CONTENT_TYPES[content_type]
+    if content_type in settings.allowed_upload_type_set:
+        return content_type
+    return None
+
 
 @router.get("", response_model=list[AttachmentOut])
 def list_attachments(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -38,9 +74,10 @@ async def upload_attachment(
     content = await file.read()
     if len(content) > settings.max_upload_bytes:
         raise HTTPException(status_code=413, detail="File too large")
-    content_type = file.content_type or "application/octet-stream"
-    if content_type not in settings.allowed_upload_type_set:
-        raise HTTPException(status_code=415, detail=f"Unsupported file type: {content_type}")
+    raw_content_type = file.content_type or "application/octet-stream"
+    content_type = allowed_content_type(file.filename, raw_content_type)
+    if not content_type:
+        raise HTTPException(status_code=415, detail=f"Unsupported file type: {raw_content_type}")
     upload_root = Path(settings.upload_dir)
     upload_root.mkdir(parents=True, exist_ok=True)
     stored = f"{uuid4().hex}_{Path(file.filename or 'upload.bin').name}"

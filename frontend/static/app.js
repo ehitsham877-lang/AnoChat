@@ -340,12 +340,20 @@
   }
 
   function moduleBadgeCount(key) {
-    if (key === "chatters") return state.chatters.reduce((total, chatter) => total + Number(chatter.unread_count || 0), 0);
-    return moduleNotificationCount(key);
+    const notificationCount = moduleNotificationCount(key);
+    if (key === "chatters") {
+      const unreadMessages = state.chatters.reduce((total, chatter) => total + Number(chatter.unread_count || 0), 0);
+      return Math.max(notificationCount, unreadMessages);
+    }
+    return notificationCount;
   }
 
   function moduleNotificationCount(key) {
     return state.notifications.filter((item) => !item.is_read && notificationModuleKey(item) === key).length;
+  }
+
+  function sidebarBadgeSignature() {
+    return availableNavItems().map((item) => `${item.key}:${moduleBadgeCount(item.key)}`).join("|");
   }
 
   function notificationModuleKey(item) {
@@ -389,6 +397,7 @@
     render();
     try {
       await fn();
+      if (apiClient.token() && state.user) await refreshSidebarBadges();
       if (success) toast(success, "success");
     } catch (err) {
       const message = err.message || String(err);
@@ -492,15 +501,15 @@
     if (!availableNavItems().some((item) => item.key === tab)) tab = "dashboard";
     if (state.tab === tab && !state.mobileSidebarOpen) return;
     state.mobileSidebarOpen = false;
+    state.tab = tab;
+    localStorage.setItem("anochat_tab", tab);
     state.loading = true;
     state.error = "";
     if (tab !== "chatters") state.replyTo = null;
     render();
+    window.scrollTo({ top: 0, behavior: "auto" });
     try {
       await loadTab(tab);
-      state.tab = tab;
-      localStorage.setItem("anochat_tab", tab);
-      window.scrollTo({ top: 0, behavior: "auto" });
     } catch (err) {
       const message = err.message || String(err);
       state.error = message;
@@ -537,6 +546,17 @@
     } finally {
       render();
     }
+  }
+
+  async function refreshSidebarBadges() {
+    try {
+      const [notifications, chatters] = await Promise.all([
+        apiClient.get("/api/notifications"),
+        apiClient.get("/api/chatters"),
+      ]);
+      state.notifications = notifications;
+      state.chatters = chatters;
+    } catch (_) {}
   }
 
   function startPresenceSync() {
@@ -576,11 +596,13 @@
   async function refreshActiveChatterMessages(silent) {
     if (!apiClient.token() || !state.user || state.tab !== "chatters" || !state.activeChatter || state.refreshingMessages || state.sendingMessage) return;
     const chatterId = state.activeChatter;
+    const previousBadgeSignature = sidebarBadgeSignature();
     state.refreshingMessages = true;
     try {
-      const [chatters, messages] = await Promise.all([
+      const [chatters, messages, notifications] = await Promise.all([
         apiClient.get("/api/chatters"),
         apiClient.get(`/api/chatters/${chatterId}/messages`),
+        apiClient.get("/api/notifications"),
       ]);
       if (state.activeChatter !== chatterId || state.tab !== "chatters") return;
       const nextSignature = messageSignature(messages);
@@ -589,11 +611,14 @@
       const nextLast = messages[messages.length - 1]?.id || null;
       const changed = nextSignature !== state.lastMessageSignature;
       state.chatters = chatters;
-      markChatterReadLocally(chatterId);
+      state.notifications = notifications;
+      const badgesChanged = sidebarBadgeSignature() !== previousBadgeSignature;
       if (changed) {
         state.messages = messages;
         state.lastMessageSignature = nextSignature;
         if (previousLast !== nextLast || messages.length > previousCount) state.scrollMessagesBottom = true;
+        render();
+      } else if (badgesChanged) {
         render();
       }
     } catch (err) {
@@ -606,21 +631,22 @@
   async function refreshPresenceData(silent) {
     if (!apiClient.token() || !state.user) return;
     try {
-      const [me, users, chatters] = await Promise.all([
+      const [me, users, chatters, notifications] = await Promise.all([
         apiClient.get("/api/auth/me"),
         apiClient.get("/api/users"),
         apiClient.get("/api/chatters"),
+        apiClient.get("/api/notifications"),
       ]);
       state.user = me;
       state.users = users;
       state.chatters = chatters;
+      state.notifications = notifications;
       if (state.activeChatter && !state.chatters.some((item) => Number(item.id) === Number(state.activeChatter))) {
         state.activeChatter = state.chatters[0]?.id || null;
       }
       if (state.tab === "chatters" && state.activeChatter && !state.sendingMessage) {
         state.messages = await apiClient.get(`/api/chatters/${state.activeChatter}/messages`);
       }
-      if (state.activeChatter) markChatterReadLocally(state.activeChatter);
       if (!state.modal || state.modal.type === "profile") {
         if (state.modal?.type === "profile") state.modal = { type: "profile", data: me };
         render();
@@ -683,7 +709,6 @@
     if (state.activeChatter && !state.chatters.some((item) => item.id === state.activeChatter)) state.activeChatter = state.chatters[0]?.id || null;
     state.messages = state.activeChatter ? await apiClient.get(`/api/chatters/${state.activeChatter}/messages`) : [];
     state.lastMessageSignature = messageSignature(state.messages);
-    if (state.activeChatter) markChatterReadLocally(state.activeChatter);
   }
   async function loadMonitoringSoft() { if (canManage()) await loadMonitoring(); }
   async function loadMonitoring() {
@@ -1717,7 +1742,6 @@
       state.replyTo = null;
       state.messages = await apiClient.get(`/api/chatters/${id}/messages`);
       state.lastMessageSignature = messageSignature(state.messages);
-      markChatterReadLocally(id);
       state.scrollMessagesBottom = true;
       render();
     } catch (err) {
@@ -1726,10 +1750,6 @@
       toast(message, "error");
       render();
     }
-  }
-
-  function markChatterReadLocally(chatterId) {
-    state.chatters = state.chatters.map((chatter) => Number(chatter.id) === Number(chatterId) ? { ...chatter, unread_count: 0 } : chatter);
   }
 
   async function openChatter(id) {
