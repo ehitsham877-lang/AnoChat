@@ -7,6 +7,7 @@ def message_out(message: Message, current_user: User) -> dict:
     sender_admin = is_admin(message.sender)
     deleted_by = message.deleted_by
     body = (message.original_body or message.body) if (admin or sender_admin) else message.body
+    attachments = message.attachments if admin else [attachment for attachment in message.attachments if not attachment.is_deleted]
     if message.is_deleted and not admin:
         deleted_by_admin = bool(deleted_by and is_admin(deleted_by))
         body = "This message has been deleted by admin" if deleted_by_admin else "This message has been deleted"
@@ -18,7 +19,7 @@ def message_out(message: Message, current_user: User) -> dict:
         "message_type": message.message_type,
         "is_moderated": message.is_moderated,
         "moderation_reason": message.moderation_reason,
-        "attachments": [] if message.is_deleted and not admin else message.attachments,
+        "attachments": [] if message.is_deleted and not admin else attachments,
         "seen_by": message.seen_by,
         "created_at": message.created_at,
         "is_deleted": message.is_deleted,

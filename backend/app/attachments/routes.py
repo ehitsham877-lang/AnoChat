@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.activity_logs.service import log_activity
@@ -11,6 +12,7 @@ from app.common import get_or_404
 from app.config import get_settings
 from app.database import get_db
 from app.models import Attachment, User
+from app.roles.permissions import is_admin
 from app.schemas import AttachmentOut
 
 router = APIRouter(prefix="/api/attachments", tags=["attachments"])
@@ -55,11 +57,9 @@ def allowed_content_type(filename: str | None, content_type: str) -> str | None:
 
 @router.get("", response_model=list[AttachmentOut])
 def list_attachments(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    from app.roles.permissions import is_admin
-
     query = db.query(Attachment).order_by(Attachment.created_at.desc())
     if not is_admin(current_user):
-        query = query.filter(Attachment.uploaded_by_id == current_user.id)
+        query = query.filter(Attachment.uploaded_by_id == current_user.id, Attachment.is_deleted.is_(False))
     return query.limit(300).all()
 
 
@@ -103,6 +103,8 @@ async def upload_attachment(
 @router.get("/{attachment_id}")
 def download_attachment(attachment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     attachment = get_or_404(db, Attachment, attachment_id)
+    if attachment.is_deleted and not is_admin(current_user):
+        raise HTTPException(status_code=404, detail="Attachment deleted")
     path = Path(attachment.storage_path)
     if not path.exists():
         raise HTTPException(status_code=404, detail="File missing on disk")
@@ -113,13 +115,11 @@ def download_attachment(attachment_id: int, db: Session = Depends(get_db), curre
 def delete_attachment(attachment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     attachment = get_or_404(db, Attachment, attachment_id)
     if attachment.uploaded_by_id != current_user.id:
-        from app.roles.permissions import is_admin
         if not is_admin(current_user):
             raise HTTPException(status_code=403, detail="Only uploader or admin can delete attachments")
-    path = Path(attachment.storage_path)
-    if path.exists():
-        path.unlink()
+    attachment.is_deleted = True
+    attachment.deleted_by_id = current_user.id
+    attachment.deleted_at = func.now()
     log_activity(db, "attachment_deleted", f"{current_user.name} deleted attachment {attachment.filename}.", current_user.id)
-    db.delete(attachment)
     db.commit()
     return {"ok": True}

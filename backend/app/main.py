@@ -70,22 +70,29 @@ def seed_data(db: Session) -> None:
 
 def ensure_runtime_schema() -> None:
     inspector = inspect(engine)
-    if not inspector.has_table("messages"):
-        return
-    columns = {column["name"] for column in inspector.get_columns("messages")}
     dialect = engine.dialect.name
     deleted_at_type = "TIMESTAMP WITH TIME ZONE" if dialect == "postgresql" else "DATETIME"
     deleted_default = "FALSE" if dialect == "postgresql" else "0"
-    additions = {
+    message_columns = {column["name"] for column in inspector.get_columns("messages")} if inspector.has_table("messages") else set()
+    message_additions = {
         "original_body": "ALTER TABLE messages ADD COLUMN original_body TEXT",
         "is_deleted": f"ALTER TABLE messages ADD COLUMN is_deleted BOOLEAN DEFAULT {deleted_default}",
         "deleted_by_id": "ALTER TABLE messages ADD COLUMN deleted_by_id INTEGER",
         "deleted_at": f"ALTER TABLE messages ADD COLUMN deleted_at {deleted_at_type}",
         "reply_to_id": "ALTER TABLE messages ADD COLUMN reply_to_id INTEGER",
     }
+    attachment_columns = {column["name"] for column in inspector.get_columns("attachments")} if inspector.has_table("attachments") else set()
+    attachment_additions = {
+        "is_deleted": f"ALTER TABLE attachments ADD COLUMN is_deleted BOOLEAN DEFAULT {deleted_default}",
+        "deleted_by_id": "ALTER TABLE attachments ADD COLUMN deleted_by_id INTEGER",
+        "deleted_at": f"ALTER TABLE attachments ADD COLUMN deleted_at {deleted_at_type}",
+    }
     with engine.begin() as connection:
-        for column, statement in additions.items():
-            if column not in columns:
+        for column, statement in message_additions.items():
+            if column not in message_columns:
+                connection.execute(text(statement))
+        for column, statement in attachment_additions.items():
+            if column not in attachment_columns:
                 connection.execute(text(statement))
 
 

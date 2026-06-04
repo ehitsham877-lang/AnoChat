@@ -167,6 +167,10 @@ class Attachment(TimestampMixin, Base):
     uploaded_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"), index=True)
     chatter_id: Mapped[int | None] = mapped_column(ForeignKey("chatters.id", ondelete="SET NULL"), index=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    deleted_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[User | None] = relationship(foreign_keys=[deleted_by_id], lazy="selectin")
 
 
 class ActivityLog(Base):

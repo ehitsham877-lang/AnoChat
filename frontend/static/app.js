@@ -146,6 +146,7 @@
     state.renderCycle += 1;
     const renderCycle = state.renderCycle;
     const messageScrollTop = captureMessageScrollTop();
+    const composerFocus = captureComposerFocus();
     const shouldScrollMessagesBottom = state.scrollMessagesBottom;
     state.scrollMessagesBottom = false;
     const visibleNav = state.user ? availableNavItems() : navItems;
@@ -173,7 +174,7 @@
       state.modal ? modalView() : null,
       toastRegion(),
     ]));
-    afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle);
+    afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus);
     ensureVisibleImagePreviews();
   }
 
@@ -183,7 +184,17 @@
     return stream ? stream.scrollTop : null;
   }
 
-  function afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle) {
+  function captureComposerFocus() {
+    const input = document.activeElement;
+    if (!input || !input.matches?.(".composer input[name='body']")) return null;
+    return {
+      value: input.value,
+      start: input.selectionStart,
+      end: input.selectionEnd,
+    };
+  }
+
+  function afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus) {
     window.requestAnimationFrame(() => {
       if (renderCycle !== state.renderCycle) return;
       if (state.modal?.type === "user") {
@@ -198,12 +209,25 @@
       if (!stream) return;
       if (shouldScrollMessagesBottom) {
         stream.scrollTop = stream.scrollHeight;
+        restoreComposerFocus(composerFocus);
         return;
       }
       if (messageScrollTop !== null && messageScrollTop !== undefined) {
         stream.scrollTop = Math.min(messageScrollTop, stream.scrollHeight);
       }
+      restoreComposerFocus(composerFocus);
     });
+  }
+
+  function restoreComposerFocus(composerFocus) {
+    if (!composerFocus || state.modal) return;
+    const input = document.querySelector(".composer input[name='body']");
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    if (document.activeElement !== input) return;
+    const position = Math.min(input.value.length, composerFocus.start ?? input.value.length);
+    const end = Math.min(input.value.length, composerFocus.end ?? position);
+    input.setSelectionRange(position, end);
   }
 
   function shellClass() {

@@ -185,6 +185,9 @@ class AttachmentOut(BaseModel):
     project_id: int | None = None
     chatter_id: int | None = None
     uploaded_by_id: int | None = None
+    is_deleted: bool = False
+    deleted_by_id: int | None = None
+    deleted_at: datetime | None = None
     created_at: datetime
 
 
