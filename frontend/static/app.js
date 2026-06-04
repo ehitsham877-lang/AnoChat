@@ -147,6 +147,7 @@
     const renderCycle = state.renderCycle;
     const messageScrollTop = captureMessageScrollTop();
     const composerFocus = captureComposerFocus();
+    const searchFocus = captureSearchFocus();
     const shouldScrollMessagesBottom = state.scrollMessagesBottom;
     state.scrollMessagesBottom = false;
     const visibleNav = state.user ? availableNavItems() : navItems;
@@ -174,7 +175,7 @@
       state.modal ? modalView() : null,
       toastRegion(),
     ]));
-    afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus);
+    afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus, searchFocus);
     ensureVisibleImagePreviews();
   }
 
@@ -194,7 +195,17 @@
     };
   }
 
-  function afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus) {
+  function captureSearchFocus() {
+    const input = document.activeElement;
+    if (!input || !input.matches?.(".search-box input[data-search-key]")) return null;
+    return {
+      key: input.dataset.searchKey,
+      start: input.selectionStart,
+      end: input.selectionEnd,
+    };
+  }
+
+  function afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus, searchFocus) {
     window.requestAnimationFrame(() => {
       if (renderCycle !== state.renderCycle) return;
       if (state.modal?.type === "user") {
@@ -205,8 +216,12 @@
           }
         });
       }
+      restoreSearchFocus(searchFocus);
       const stream = document.querySelector(".message-stream");
-      if (!stream) return;
+      if (!stream) {
+        restoreComposerFocus(composerFocus);
+        return;
+      }
       if (shouldScrollMessagesBottom) {
         stream.scrollTop = stream.scrollHeight;
         restoreComposerFocus(composerFocus);
@@ -217,6 +232,17 @@
       }
       restoreComposerFocus(composerFocus);
     });
+  }
+
+  function restoreSearchFocus(searchFocus) {
+    if (!searchFocus || state.modal) return;
+    const input = document.querySelector(`.search-box input[data-search-key="${searchFocus.key}"]`);
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    if (document.activeElement !== input) return;
+    const position = Math.min(input.value.length, searchFocus.start ?? input.value.length);
+    const end = Math.min(input.value.length, searchFocus.end ?? position);
+    input.setSelectionRange(position, end);
   }
 
   function restoreComposerFocus(composerFocus) {
@@ -2109,6 +2135,7 @@
         placeholder,
         value: state.filters[key] || "",
         autocomplete: "off",
+        "data-search-key": key,
         oninput: (e) => {
           state.filters[key] = e.target.value;
           render();
