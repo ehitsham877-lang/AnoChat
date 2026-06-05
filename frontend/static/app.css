@@ -2349,36 +2349,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   cursor: pointer;
   transition: border-color .15s ease, transform .15s ease, background .15s ease;
 }
-.dictate-btn {
-  min-height: 52px;
-  border: 1px solid var(--soft-line);
-  border-radius: 18px;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: #1f2937;
-  background: #ffffff;
-  font-weight: 900;
-  cursor: pointer;
-  transition: border-color .15s ease, transform .15s ease, background .15s ease;
-}
-.dictate-btn:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--primary) 36%, var(--line));
-  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
-}
-.dictate-btn:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-  transform: none;
-}
-.dictate-btn.listening {
-  color: #075985;
-  border-color: rgba(14,165,233,.28);
-  background: rgba(224,242,254,.9);
-}
 .voice-btn:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--primary) 36%, var(--line));
@@ -2406,49 +2376,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   color: #991b1b;
   background: rgba(254,226,226,.72);
   font-weight: 900;
-}
-.speech-status {
-  grid-column: 1 / -1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line));
-  border-radius: 16px;
-  padding: 9px 12px;
-  color: #0f172a;
-  background: color-mix(in srgb, var(--primary) 6%, var(--surface));
-  font-size: 12px;
-  font-weight: 850;
-}
-.speech-status .recording-dot {
-  background: #0ea5e9;
-  box-shadow: 0 0 0 4px rgba(14,165,233,.14);
-}
-.speech-status strong,
-.speech-status small {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.speech-status strong {
-  flex: 1;
-}
-.speech-status small {
-  color: var(--muted);
-}
-.speech-status button {
-  margin-left: auto;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  background: rgba(255,255,255,.72);
-  cursor: pointer;
 }
 .voice-recording-bar button {
   margin-left: auto;
@@ -3756,29 +3683,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-color: #60a5fa;
   background: rgba(37,99,235,.14);
 }
-:root[data-theme="dark"] .dictate-btn {
-  color: #cbd5e1;
-  border-color: #334155;
-  background: #111827;
-}
-:root[data-theme="dark"] .dictate-btn:hover {
-  color: #f8fafc;
-  border-color: #60a5fa;
-  background: rgba(37,99,235,.14);
-}
-:root[data-theme="dark"] .dictate-btn.listening,
-:root[data-theme="dark"] .speech-status {
-  color: #bfdbfe;
-  border-color: rgba(96,165,250,.24);
-  background: rgba(37,99,235,.16);
-}
-:root[data-theme="dark"] .speech-status small {
-  color: #a8b3c7;
-}
-:root[data-theme="dark"] .speech-status button {
-  color: #cbd5e1;
-  background: rgba(15,23,42,.72);
-}
 :root[data-theme="dark"] .voice-btn.recording,
 :root[data-theme="dark"] .voice-recording-bar {
   color: #fecaca;
@@ -4447,7 +4351,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   .message-stack { max-width: 100%; }
   .composer { grid-template-columns: 1fr; padding: 14px; }
   .chat-file-chip,
-  .dictate-btn,
   .voice-btn,
   .chat-send-btn { width: 100%; max-width: none; }
   .file-chip-text { max-width: 100%; }
@@ -5319,9 +5222,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .chat-page .chat-send-btn:hover {
   transform: none;
   background: rgba(255,255,255,.62);
-}
-.chat-page .dictate-btn {
-  display: none;
 }
 .chat-page .file-chip-text,
 .chat-page .voice-btn span,

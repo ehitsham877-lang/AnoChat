@@ -44,9 +44,6 @@
     pendingVoiceDuration: null,
     pendingVoicePreviewUrl: null,
     voiceRecording: null,
-    speechRecognition: null,
-    dictating: false,
-    speechTranscript: "",
     replyTo: null,
     editingMessage: null,
     editingBody: "",
@@ -102,7 +99,6 @@
       MailCheck: '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="m16 19 2 2 4-4"/>',
       Menu: '<path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/>',
       Mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
-      MicVocal: '<path d="m11 7-3 5h4l-3 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>',
       MessageCircle: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
       MessagesSquare: '<path d="M14 9a2 2 0 0 1-2 2H6l-4 4V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v10l-4-4h-6a2 2 0 0 1-2-2v-1"/>',
       Moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
@@ -602,7 +598,6 @@
       try { await apiClient.post("/api/auth/logout", {}); } catch (_) {}
       if (loggedOutUser) broadcastPresenceChange({ ...loggedOutUser, messenger_status: "offline" });
       cancelVoiceRecording(true);
-      stopSpeechRecognition(true);
       stopPresenceSync();
       stopMessageSync();
       apiClient.clearToken();
@@ -630,7 +625,6 @@
     state.error = "";
     if (tab !== "chatters") {
       cancelVoiceRecording(true);
-      stopSpeechRecognition(true);
       state.replyTo = null;
       clearPendingVoiceNote();
       state.pendingVoiceDuration = null;
@@ -1368,7 +1362,6 @@
     return h("form", { class: "composer", onsubmit: sendMessage }, [
       state.replyTo ? replyComposerPreview() : null,
       state.voiceRecording ? voiceRecordingBar() : null,
-      state.dictating || state.speechTranscript ? speechStatusBar() : null,
       state.pendingVoicePreviewUrl ? pendingVoicePreview() : null,
       h("div", { class: "composer-bar mention-anchor" }, [
         h("label", { class: "file-chip chat-file-chip", title: "Attach file", "aria-label": "Attach file" }, [icon("Paperclip"), h("span", { class: "file-chip-text" }, state.pendingAttachment?.name || "Attach"), h("input", { type: "file", name: "file", onchange: updateAttachmentLabel })]),
@@ -1376,7 +1369,6 @@
           h("input", { name: "body", value: state.composerBody, placeholder: "Your message", autocomplete: "off", oninput: updateComposerText, onkeydown: handleComposerKeydown }),
         ]),
         state.mention.open ? mentionDropdown(active) : null,
-        dictateButton(),
         voiceButton(active),
         h("button", { class: "btn btn-primary chat-send-btn", disabled: state.sendingMessage, title: "Send message", "aria-label": "Send message" }, [icon("Send"), h("span", {}, state.sendingMessage ? "Sending..." : "Send")]),
       ]),
@@ -1442,32 +1434,11 @@
     }, [icon(recording ? "Square" : "Mic"), h("span", {}, recording ? formatDuration(recordingDuration()) : "Voice")]);
   }
 
-  function dictateButton() {
-    const unsupported = !speechRecognitionSupported();
-    return h("button", {
-      type: "button",
-      class: state.dictating ? "dictate-btn listening" : "dictate-btn",
-      title: unsupported ? "Speech to text is not supported in this browser" : (state.dictating ? "Stop dictation" : "Dictate message text"),
-      "aria-label": state.dictating ? "Stop dictation" : "Dictate message text",
-      disabled: unsupported || state.sendingMessage,
-      onclick: state.dictating ? stopSpeechRecognition : () => startSpeechRecognition({ appendToComposer: true }),
-    }, [icon("MicVocal"), h("span", {}, state.dictating ? "Listening" : "Dictate")]);
-  }
-
   function voiceRecordingBar() {
     return h("div", { class: "voice-recording-bar" }, [
       h("span", { class: "recording-dot" }),
       h("span", {}, `Recording ${formatDuration(recordingDuration())}`),
       h("button", { type: "button", title: "Cancel recording", "aria-label": "Cancel recording", onclick: () => cancelVoiceRecording(false) }, [icon("X", 14)]),
-    ]);
-  }
-
-  function speechStatusBar() {
-    return h("div", { class: state.dictating ? "speech-status listening" : "speech-status" }, [
-      h("span", { class: "recording-dot" }),
-      h("span", {}, state.dictating ? "Listening..." : "Transcript ready"),
-      state.speechTranscript ? h("strong", {}, state.speechTranscript) : h("small", {}, "Speech is processed by your browser. Only sent text is saved."),
-      state.dictating ? h("button", { type: "button", onclick: stopSpeechRecognition, title: "Stop dictation", "aria-label": "Stop dictation" }, [icon("X", 14)]) : null,
     ]);
   }
 
@@ -1529,77 +1500,6 @@
     return !!(navigator.mediaDevices?.getUserMedia && (window.AudioContext || window.webkitAudioContext));
   }
 
-  function speechRecognitionClass() {
-    return window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  }
-
-  function speechRecognitionSupported() {
-    return !!speechRecognitionClass();
-  }
-
-  function startSpeechRecognition(options = {}) {
-    const SpeechRecognition = speechRecognitionClass();
-    if (!SpeechRecognition) {
-      toast("Speech to text is not supported in this browser.", "error");
-      return null;
-    }
-    stopSpeechRecognition(true);
-    const recognition = new SpeechRecognition();
-    recognition.lang = navigator.language || "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    const baseText = options.appendToComposer ? String(state.composerBody || "").trim() : "";
-    let finalText = "";
-    recognition.onresult = (event) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        const transcript = event.results[i][0]?.transcript || "";
-        if (event.results[i].isFinal) finalText = `${finalText} ${transcript}`.trim();
-        else interim = `${interim} ${transcript}`.trim();
-      }
-      const combined = [finalText, interim].filter(Boolean).join(" ").trim();
-      state.speechTranscript = combined;
-      if (options.appendToComposer && combined) {
-        state.composerBody = [baseText, combined].filter(Boolean).join(" ").trim();
-      }
-      render();
-    };
-    recognition.onerror = () => {
-      state.dictating = false;
-      state.speechRecognition = null;
-      render();
-    };
-    recognition.onend = () => {
-      if (state.speechRecognition === recognition) {
-        state.dictating = false;
-        state.speechRecognition = null;
-        render();
-      }
-    };
-    state.speechRecognition = recognition;
-    state.dictating = true;
-    state.speechTranscript = "";
-    try {
-      recognition.start();
-    } catch (_) {
-      state.dictating = false;
-      state.speechRecognition = null;
-      toast("Could not start speech to text.", "error");
-    }
-    render();
-    return recognition;
-  }
-
-  function stopSpeechRecognition(silent) {
-    const recognition = state.speechRecognition;
-    state.speechRecognition = null;
-    state.dictating = false;
-    if (recognition) {
-      try { recognition.stop(); } catch (_) {}
-    }
-    if (!silent) render();
-  }
-
   async function startVoiceRecording() {
     if (!voiceRecorderSupported()) {
       toast("Voice recording is not supported in this browser.", "error");
@@ -1637,7 +1537,6 @@
         startedAt: Date.now(),
         timer: window.setInterval(render, 1000),
       };
-      startSpeechRecognition({ appendToComposer: false });
       render();
     } catch (err) {
       toast("Microphone permission is needed to record voice notes.", "error");
@@ -1655,7 +1554,6 @@
     if (!recording) return;
     state.voiceRecording = null;
     cleanupVoiceRecording(recording);
-    stopSpeechRecognition(true);
     if (!silent) toast("Voice note discarded.", "success");
     render();
   }
@@ -1685,7 +1583,6 @@
     const duration = recordingDuration();
     state.voiceRecording = null;
     cleanupVoiceRecording(recording);
-    stopSpeechRecognition(true);
     if (!recording.chunks.length || duration < 1) {
       toast("Voice note was too short.", "error");
       render();
@@ -1696,7 +1593,7 @@
     state.pendingAttachment = new File([blob], "voice-note.wav", { type: "audio/wav" });
     state.pendingVoiceDuration = duration;
     state.pendingVoicePreviewUrl = URL.createObjectURL(blob);
-    state.composerBody = state.speechTranscript || state.composerBody || "Voice note";
+    state.composerBody = state.composerBody || "Voice note";
     toast("Voice note ready. Listen before sending.", "success");
     render();
   }
@@ -2475,7 +2372,6 @@
     if (state.tab === "chatters" && state.activeChatter === id) return;
     if (state.activeChatter && state.composerBody.trim()) await syncTypingState(false, true);
     cancelVoiceRecording(true);
-    stopSpeechRecognition(true);
     state.activeChatter = id;
     state.tab = "chatters";
     state.pendingAttachment = null;
@@ -2527,8 +2423,6 @@
       await syncTypingState(false, true);
       event.target.reset();
       state.composerBody = "";
-      state.speechTranscript = "";
-      stopSpeechRecognition(true);
       state.pendingAttachment = null;
       state.pendingVoiceDuration = null;
       if (state.pendingVoicePreviewUrl) URL.revokeObjectURL(state.pendingVoicePreviewUrl);
