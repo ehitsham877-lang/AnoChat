@@ -2111,6 +2111,19 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .attachment-strip button .icon {
   flex: 0 0 auto;
 }
+.attachment-strip button .file-type-badge {
+  min-width: 40px;
+  display: grid;
+  overflow: visible;
+  text-overflow: clip;
+}
+.attachment-strip button .message-file-meta {
+  display: grid;
+}
+.attachment-strip button .file-type-corner {
+  display: block;
+  overflow: hidden;
+}
 .own .bubble .attachment-strip a,
 .own .bubble .attachment-strip button {
   color: #0f172a;
@@ -2126,6 +2139,90 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .own .bubble .attachment-strip a .icon,
 .own .bubble .attachment-strip button .icon {
   color: #2563eb;
+}
+.message-file-card {
+  min-width: 240px;
+  max-width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: 14px;
+  color: var(--text);
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(15,23,42,.06);
+}
+.message-file-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--line));
+  box-shadow: 0 14px 32px rgba(15,23,42,.1);
+}
+.message-file-meta {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.message-file-meta strong,
+.message-file-meta small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.message-file-meta strong {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 850;
+}
+.message-file-meta small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.file-type-badge {
+  position: relative;
+  width: 40px;
+  height: 46px;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  padding-bottom: 7px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #0ea5e9;
+  box-shadow: inset 0 -16px 0 rgba(0,0,0,.1);
+  font-size: 9px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.file-type-badge .file-type-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 0 8px 0 6px;
+  background: rgba(255,255,255,.7);
+}
+.file-type-badge.pdf { background: #ef4444; }
+.file-type-badge.doc,
+.file-type-badge.docx { background: #0ea5e9; }
+.file-type-badge.xls,
+.file-type-badge.xlsx,
+.file-type-badge.csv { background: #16a34a; }
+.file-type-badge.ppt,
+.file-type-badge.pptx { background: #f97316; }
+.file-type-badge.zip { background: #64748b; }
+.file-type-badge.txt,
+.file-type-badge.json { background: #6366f1; }
+.own .bubble .message-file-card {
+  background: #ffffff;
+  border-color: rgba(255,255,255,.78);
 }
 .delete-link {
   position: absolute;
@@ -3243,7 +3340,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-color: color-mix(in srgb, var(--primary) 35%, var(--line));
   box-shadow: 0 12px 28px rgba(15,23,42,.08);
 }
-.detail-file > span:first-child,
+.detail-file > .detail-image-icon,
 .detail-empty .icon {
   width: 34px;
   height: 34px;
@@ -4985,19 +5082,27 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   display: inline-grid;
 }
 .chat-page .message-menu-trigger {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 28px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   display: grid;
   place-items: center;
   color: #6b7280;
-  background: rgba(255,255,255,.72);
+  background: transparent;
   cursor: pointer;
 }
+.chat-page .message-menu-trigger:hover {
+  color: #111827;
+  background: transparent;
+}
 .chat-page .own .message-menu-trigger {
-  color: rgba(255,255,255,.92);
-  background: rgba(255,255,255,.16);
+  color: rgba(255,255,255,.9);
+  background: transparent;
+}
+.chat-page .own .message-menu-trigger:hover {
+  color: #ffffff;
+  background: transparent;
 }
 .chat-page .message-options-menu {
   position: absolute;
@@ -5087,11 +5192,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   width: min(420px, 70vw);
   aspect-ratio: 4 / 3;
 }
-.chat-page .attachment-strip .attachment-pill {
-  width: min(100%, 260px);
-  border: 0;
-  border-radius: 12px;
-  background: #ffffff;
+.chat-page .message-file-card {
+  width: min(100%, 300px);
 }
 .chat-page .own .bubble.voice-bubble {
   width: min(100%, 300px);

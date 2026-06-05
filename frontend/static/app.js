@@ -1382,9 +1382,12 @@
         imagePreview(file, "message-image-preview"),
       ]);
     }
-    return h("button", { type: "button", class: "attachment-pill", title: file.filename || "Attachment", onclick: () => downloadAttachment(file) }, [
-      icon("Paperclip", 14),
-      h("span", {}, file.filename),
+    return h("button", { type: "button", class: "message-file-card", title: file.filename || "Attachment", onclick: () => downloadAttachment(file) }, [
+      fileTypeBadge(file),
+      h("span", { class: "message-file-meta" }, [
+        h("strong", {}, file.filename || "Attachment"),
+        h("small", {}, prettyBytes(file.size_bytes || 0)),
+      ]),
     ]);
   }
 
@@ -1483,6 +1486,36 @@
 
   function isAudioFile(file) {
     return String(file?.content_type || "").startsWith("audio/");
+  }
+
+  function fileExtension(file) {
+    const filename = String(file?.filename || "").toLowerCase();
+    const extension = filename.includes(".") ? filename.split(".").pop() : "";
+    if (extension) return extension;
+    const type = String(file?.content_type || "").toLowerCase();
+    if (type.includes("pdf")) return "pdf";
+    if (type.includes("word")) return "docx";
+    if (type.includes("excel") || type.includes("spreadsheet")) return "xlsx";
+    if (type.includes("powerpoint") || type.includes("presentation")) return "pptx";
+    if (type.includes("zip")) return "zip";
+    if (type.includes("json")) return "json";
+    if (type.includes("csv")) return "csv";
+    if (type.startsWith("text/")) return "txt";
+    return "file";
+  }
+
+  function fileBadgeLabel(file) {
+    const extension = fileExtension(file);
+    const aliases = { jpeg: "JPG", jpg: "JPG", xlsx: "XLS", xls: "XLS", doc: "DOC", docx: "DOCX", ppt: "PPT", pptx: "PPT" };
+    return aliases[extension] || extension.slice(0, 4).toUpperCase();
+  }
+
+  function fileTypeBadge(file) {
+    const extension = fileExtension(file);
+    return h("span", { class: `file-type-badge ${extension}` }, [
+      h("span", { class: "file-type-corner" }),
+      h("strong", {}, fileBadgeLabel(file)),
+    ]);
   }
 
   function formatDuration(seconds) {
@@ -2187,7 +2220,7 @@
   function detailFile(file) {
     const image = isImageFile(file);
     return h("button", { type: "button", class: "detail-file", onclick: () => image ? openImagePreview(file) : downloadAttachment(file) }, [
-      h("span", {}, [icon(image ? "Image" : "Paperclip", 16)]),
+      image ? h("span", { class: "detail-image-icon" }, [icon("Image", 16)]) : fileTypeBadge(file),
       h("span", {}, [h("strong", {}, file.filename || "Attachment"), h("small", {}, `${prettyBytes(file.size_bytes || 0)} Â· ${formatDate(file.created_at)}`)]),
     ]);
   }
