@@ -1247,7 +1247,6 @@
         ]),
         deletedNote ? h("small", { class: "deleted-message-note" }, [icon("Trash", 12), h("span", {}, deletedNote)]) : null,
         h("time", { class: "message-time" }, stamp),
-        own && !message.is_deleted ? messageSeenReceipt(message) : null,
       ]),
       own ? h("span", { class: "message-avatar own-avatar" }, initials(state.user?.name || "You")) : null,
     ]);
@@ -1273,6 +1272,7 @@
         },
       }, [icon("MoreVertical", 16)]),
       open ? h("span", { class: "message-options-menu" }, [
+        h("button", { type: "button", onclick: () => { state.openMessageMenu = null; openMessageInfo(message); } }, [icon("Eye", 14), h("span", {}, "Info")]),
         canReply ? h("button", { type: "button", onclick: () => { state.openMessageMenu = null; startReply(message); } }, [icon("MessageCircle", 14), h("span", {}, "Reply")]) : null,
         editable ? h("button", { type: "button", onclick: () => { state.openMessageMenu = null; startEditMessage(message); } }, [icon("Edit", 14), h("span", {}, "Edit")]) : null,
         canDelete ? h("button", { type: "button", class: "danger", onclick: () => { state.openMessageMenu = null; confirmAction("Delete message?", "This message will be removed.", () => deleteMessage(message.id)); } }, [icon("Trash", 14), h("span", {}, "Delete")]) : null,
@@ -1305,17 +1305,6 @@
     ]);
   }
 
-  function messageSeenReceipt(message) {
-    const viewers = messageSeenViewers(message);
-    if (!viewers.length) return null;
-    const names = viewers.map((user) => user.name || user.login || user.email || `User ${user.id}`);
-    const preview = names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
-    return h("small", { class: "message-seen-receipt", title: `Seen by ${names.join(", ")}` }, [
-      icon("Eye", 12),
-      h("span", {}, `Seen by ${preview}`),
-    ]);
-  }
-
   function messageSeenViewers(message) {
     const seen = Array.isArray(message.seen_by) ? message.seen_by : [];
     const seenIds = new Set();
@@ -1325,6 +1314,11 @@
       seenIds.add(id);
       return true;
     });
+  }
+
+  function openMessageInfo(message) {
+    state.modal = { type: "messageInfo", message };
+    render();
   }
 
   function startReply(message) {
@@ -2091,6 +2085,7 @@
         modal.type === "role" ? roleForm(modal.data) : null,
         modal.type === "profile" ? profileBody(modal.data || state.user) : null,
         modal.type === "chatterDetails" ? chatterDetailsBody(modal.chatter) : null,
+        modal.type === "messageInfo" ? messageInfoBody(modal.message) : null,
         modal.type === "imagePreview" ? imagePreviewBody(modal.file) : null,
         modal.type === "confirm" ? confirmBody(modal) : null,
       ]),
@@ -2099,6 +2094,7 @@
 
   function modalClass(modal) {
     if (modal.type === "chatterDetails") return "modal chatter-detail-modal";
+    if (modal.type === "messageInfo") return "modal message-info-modal";
     if (modal.type === "imagePreview") return "modal image-preview-modal";
     return "modal";
   }
@@ -2110,6 +2106,7 @@
     if (modal.type === "role") return "Edit User";
     if (modal.type === "profile") return "Account Info";
     if (modal.type === "chatterDetails") return "Chatter Info";
+    if (modal.type === "messageInfo") return "Message Info";
     if (modal.type === "imagePreview") return modal.file?.filename || "Image preview";
     return modal.title || "Confirm";
   }
@@ -2285,6 +2282,33 @@
     return h("button", { type: "button", class: "detail-file", onclick: () => image ? openImagePreview(file) : downloadAttachment(file) }, [
       image ? h("span", { class: "detail-image-icon" }, [icon("Image", 16)]) : fileTypeBadge(file),
       h("span", {}, [h("strong", {}, file.filename || "Attachment"), h("small", {}, `${prettyBytes(file.size_bytes || 0)} Â· ${formatDate(file.created_at)}`)]),
+    ]);
+  }
+
+  function messageInfoBody(message) {
+    const viewers = messageSeenViewers(message);
+    const sentAt = message?.created_at ? `${formatDate(message.created_at)} at ${formatMessageTime(message.created_at)}` : "Unknown";
+    return h("div", { class: "message-info-body" }, [
+      h("div", { class: "message-info-summary" }, [
+        h("span", { class: "message-info-icon" }, [icon("Check", 16)]),
+        h("span", {}, [h("strong", {}, "Sent"), h("small", {}, sentAt)]),
+      ]),
+      h("div", { class: "message-info-section" }, [
+        h("div", { class: "message-info-title" }, [
+          h("span", {}, "Read by"),
+          h("small", {}, String(viewers.length)),
+        ]),
+        viewers.length ? h("div", { class: "message-info-list" }, viewers.map((user) => h("div", { class: "message-info-person" }, [
+          h("span", { class: "member-mini-avatar" }, initials(user.name || user.email || user.login || "User")),
+          h("span", {}, [
+            h("strong", {}, user.name || user.login || user.email || `User ${user.id}`),
+            h("small", {}, user.email || displayRoles(user).join(", ") || "Seen"),
+          ]),
+        ]))) : h("div", { class: "message-info-empty" }, [
+          icon("Eye", 16),
+          h("span", {}, "No one has seen this message yet."),
+        ]),
+      ]),
     ]);
   }
 
