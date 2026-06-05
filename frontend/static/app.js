@@ -1259,7 +1259,18 @@
     if (!canReply && !editable && !canDelete) return null;
     const open = Number(state.openMessageMenu) === Number(message.id);
     return h("span", { class: "message-menu-wrap" }, [
-      h("button", { type: "button", class: "message-menu-trigger", title: "Message options", "aria-label": "Message options", onclick: (event) => { event.stopPropagation(); state.openMessageMenu = open ? null : message.id; render(); } }, [icon("MoreVertical", 16)]),
+      h("button", {
+        type: "button",
+        class: "message-menu-trigger",
+        title: "Message options",
+        "aria-label": "Message options",
+        onclick: (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          state.openMessageMenu = open ? null : message.id;
+          render();
+        },
+      }, [icon("MoreVertical", 16)]),
       open ? h("span", { class: "message-options-menu" }, [
         canReply ? h("button", { type: "button", onclick: () => { state.openMessageMenu = null; startReply(message); } }, [icon("MessageCircle", 14), h("span", {}, "Reply")]) : null,
         editable ? h("button", { type: "button", onclick: () => { state.openMessageMenu = null; startEditMessage(message); } }, [icon("Edit", 14), h("span", {}, "Edit")]) : null,
