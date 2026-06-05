@@ -1230,10 +1230,6 @@
     return h("div", { class: own ? "message-row own" : "message-row", id: `message-${message.id}` }, [
       !own ? h("span", { class: "message-avatar" }, initials(authorName)) : null,
       h("div", { class: "message-stack" }, [
-        h("div", { class: "message-author-line" }, [
-          h("time", {}, stamp),
-          h("strong", {}, authorName),
-        ]),
         h("div", { class: `${message.is_deleted ? "bubble deleted-message" : "bubble"}${hasAttachments ? " attachment-bubble" : ""}${hasAudio ? " voice-bubble" : ""}` }, [
           h("div", { class: "bubble-meta" }, [
             h("strong", {}, authorName),
@@ -1244,9 +1240,11 @@
           message.reply_to_id ? replyPreview(message) : null,
           editing ? editMessageForm(message) : (bodyText ? h("p", {}, bodyText) : null),
           hasAttachments ? h("div", { class: "attachment-strip" }, message.attachments.map(messageAttachment)) : null,
+          h("div", { class: "bubble-footer" }, [
+            h("time", {}, stamp),
+          ]),
         ]),
         deletedNote ? h("small", { class: "deleted-message-note" }, [icon("Trash", 12), h("span", {}, deletedNote)]) : null,
-        h("time", { class: "message-time" }, stamp),
       ]),
       own ? h("span", { class: "message-avatar own-avatar" }, initials(state.user?.name || "You")) : null,
     ]);
