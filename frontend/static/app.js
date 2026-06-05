@@ -1231,8 +1231,8 @@
       !own ? h("span", { class: "message-avatar" }, initials(authorName)) : null,
       h("div", { class: "message-stack" }, [
         h("div", { class: "message-author-line" }, [
-          h("strong", {}, authorName),
           h("time", {}, stamp),
+          h("strong", {}, authorName),
         ]),
         h("div", { class: `${message.is_deleted ? "bubble deleted-message" : "bubble"}${hasAttachments ? " attachment-bubble" : ""}${hasAudio ? " voice-bubble" : ""}` }, [
           h("div", { class: "bubble-meta" }, [
