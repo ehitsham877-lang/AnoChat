@@ -1219,7 +1219,8 @@
     const deletedByCurrentUser = Number(message.deleted_by_id) === Number(state.user?.id);
     const hasAttachments = !!(message.attachments && message.attachments.length);
     const hasAudio = hasAttachments && message.attachments.some(isAudioFile);
-    const bodyText = hasAttachments && String(message.body || "").trim() === "Attachment" ? "" : (message.body || "");
+    const defaultAttachmentBody = hasAttachments && ["Attachment", "Voice note"].includes(String(message.body || "").trim());
+    const bodyText = defaultAttachmentBody ? "" : (message.body || "");
     const deletedNote = message.is_deleted && isAdmin()
       ? `This message was deleted by ${deletedByCurrentUser ? "you" : (message.deleted_by_name || userName(message.deleted_by_id) || "a user")}.`
       : "";

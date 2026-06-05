@@ -5217,9 +5217,21 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   color: #dc2626;
 }
 .chat-page .bubble.voice-bubble {
-  width: min(100%, 300px);
-  max-width: 300px;
-  padding-right: 42px;
+  width: fit-content;
+  max-width: min(360px, 72vw);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.chat-page .bubble.voice-bubble .bubble-meta {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+}
+.chat-page .bubble.voice-bubble .message-menu-trigger {
+  color: #94a3b8;
 }
 .chat-page .bubble.attachment-bubble:not(.voice-bubble) {
   width: fit-content;
@@ -5279,22 +5291,27 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   justify-items: end;
 }
 .chat-page .own .bubble.voice-bubble {
-  width: min(100%, 300px);
+  width: fit-content;
+  max-width: min(360px, 72vw);
+  background: transparent;
+  box-shadow: none;
 }
 .chat-page .voice-note-card {
-  min-height: 68px;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  gap: 12px;
-  border-radius: 14px;
-  padding: 10px 14px;
+  width: min(340px, 72vw);
+  min-height: 78px;
+  grid-template-columns: 46px minmax(150px, 1fr) auto;
+  gap: 14px;
+  border-radius: 18px;
+  padding: 14px 18px;
   background: #ffffff;
+  box-shadow: 0 14px 32px rgba(15,23,42,.08);
 }
 .chat-page .own .bubble .voice-note-card {
   background: #ffffff;
 }
 .chat-page .voice-play-btn {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border: 0;
   border-radius: 999px;
   display: grid;
@@ -5304,14 +5321,14 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   cursor: pointer;
 }
 .chat-page .voice-play-btn .icon {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   fill: currentColor;
   stroke-width: 0;
 }
 .chat-page .voice-waveform {
   min-width: 0;
-  height: 42px;
+  height: 48px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -5326,7 +5343,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .chat-page .voice-duration {
   align-self: center;
-  color: #7b8190;
+  color: #737b8c;
   font-size: 12px;
   font-weight: 800;
 }
