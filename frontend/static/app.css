@@ -950,6 +950,179 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-color: color-mix(in srgb, var(--primary) 38%, var(--line));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 14px 28px rgba(15,23,42,.08);
 }
+.settings-page {
+  max-width: 1180px;
+  margin-inline: auto;
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.settings-card {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(226, 232, 240, .9);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, .06);
+}
+.settings-card-head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.settings-card-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 11%, var(--surface));
+}
+.settings-card-head span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.settings-card-head strong {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+}
+.settings-card-head small,
+.settings-row small,
+.settings-status-tile small,
+.settings-account small,
+.danger-settings-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.settings-row {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--soft-line);
+  border-radius: 18px;
+  background: var(--surface-2);
+}
+.settings-row > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+.settings-row strong,
+.settings-status-tile strong,
+.settings-account strong {
+  color: var(--text);
+  font-weight: 900;
+}
+.settings-toggle {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.settings-toggle span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 850;
+  white-space: nowrap;
+}
+.settings-toggle span.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, .22);
+}
+.settings-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.settings-status-tile {
+  min-height: 126px;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 16px;
+  border: 1px solid var(--soft-line);
+  border-radius: 18px;
+  background: var(--surface-2);
+}
+.settings-status-tile .presence-wrap {
+  justify-self: start;
+}
+.settings-notification-panel {
+  overflow: hidden;
+  border: 1px solid var(--soft-line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.settings-notification-head {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--soft-line);
+}
+.settings-notification-list {
+  max-height: 300px;
+  overflow: auto;
+  padding: 8px;
+}
+.settings-account {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--soft-line);
+  border-radius: 20px;
+  background: var(--surface-2);
+}
+.settings-account > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.settings-account small,
+.settings-account strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-avatar {
+  width: 58px;
+  height: 58px;
+  font-size: 15px;
+  font-weight: 950;
+}
+.danger-settings-card {
+  border-color: color-mix(in srgb, #ef4444 22%, var(--line));
+}
+.danger-settings-card p {
+  margin: 0;
+}
 .avatar {
   width: 32px;
   height: 32px;
@@ -4004,6 +4177,25 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   background: linear-gradient(180deg, rgba(30,41,59,.94), rgba(15,23,42,.92));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(0,0,0,.2);
 }
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .settings-notification-panel {
+  border-color: #263244;
+  background: rgba(17, 24, 39, .88);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .22);
+}
+:root[data-theme="dark"] .settings-row,
+:root[data-theme="dark"] .settings-status-tile,
+:root[data-theme="dark"] .settings-account {
+  border-color: #263244;
+  background: rgba(15, 23, 42, .72);
+}
+:root[data-theme="dark"] .settings-toggle {
+  border-color: #334155;
+  background: #0f172a;
+}
+:root[data-theme="dark"] .settings-notification-head {
+  border-bottom-color: #263244;
+}
 :root[data-theme="dark"] .btn-soft,
 :root[data-theme="dark"] .icon-btn {
   color: #f8fafc;
@@ -4451,6 +4643,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 
 @media (max-width: 1180px) {
   .metric-grid, .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .settings-grid { grid-template-columns: 1fr; }
   .dashboard-metrics.compact,
   .quick-actions.compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4499,6 +4692,18 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   .user-modal-footer { flex-direction: column-reverse; align-items: stretch; }
   .project-modal-footer .btn,
   .user-modal-footer .btn { width: 100%; }
+  .settings-card { padding: 18px; border-radius: 20px; }
+  .settings-row,
+  .settings-status-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .settings-toggle {
+    width: 100%;
+  }
   .dashboard-hero { padding: 20px; min-height: auto; }
   .dashboard-hero h2 { font-size: 34px; }
   .dashboard-project-row { grid-template-columns: auto minmax(0, 1fr); }

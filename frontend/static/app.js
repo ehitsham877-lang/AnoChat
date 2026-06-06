@@ -6,6 +6,7 @@
     { key: "chatters", label: "Chatter", icon: "MessagesSquare" },
     { key: "monitoring", label: "Monitoring", icon: "Activity" },
     { key: "users", label: "Users & Roles", icon: "Users" },
+    { key: "settings", label: "Settings", icon: "Settings" },
   ];
 
   const state = {
@@ -140,6 +141,7 @@
       Tag: '<path d="M12.6 2H4a2 2 0 0 0-2 2v8.6a2 2 0 0 0 .6 1.4l7.4 7.4a2 2 0 0 0 2.8 0l8.6-8.6a2 2 0 0 0 0-2.8L14 2.6A2 2 0 0 0 12.6 2Z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
       Search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
       Send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+      Settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/>',
       ShieldCheck: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
       Sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>',
       Square: '<rect width="14" height="14" x="5" y="5" rx="2"/>',
@@ -184,7 +186,7 @@
   }
   function availableNavItems() {
     if (isAdmin()) return navItems;
-    return navItems.filter((item) => ["dashboard", "projects", "chatters"].indexOf(item.key) >= 0);
+    return navItems.filter((item) => ["dashboard", "projects", "chatters", "settings"].indexOf(item.key) >= 0);
   }
   function roleLabel(role) {
     const labels = { admin: "Admin", manager: "Project Manager", staff: "Project Manager", developer: "Developer", customer: "Customer" };
@@ -402,7 +404,6 @@
         onclick: () => switchTab(item.key),
         title: item.label,
       }, [icon(item.icon), h("span", { class: "nav-label" }, [h("span", {}, item.label), navNotificationBadge(item.key)]), navNotificationDot(item.key)]))),
-      accountActions("sidebar-mobile-actions mobile-only"),
     ]);
   }
 
@@ -413,16 +414,6 @@
         h("button", { class: "icon-btn mobile-only", onclick: () => { state.mobileSidebarOpen = true; render(); } }, [icon("Menu")]),
         h("div", {}, [h("h1", {}, label), h("p", { class: "muted" }, pageSubtitle())]),
       ]),
-      accountActions("top-actions"),
-    ]);
-  }
-
-  function accountActions(className) {
-    return h("div", { class: className }, [
-      h("button", { class: "icon-btn", title: "Theme", onclick: toggleTheme }, [icon(state.theme === "dark" ? "Sun" : "Moon")]),
-      presenceControl(),
-      h("button", { class: "profile-pill profile-trigger", title: "Account info", onclick: () => openModal("profile", state.user) }, [h("span", { class: `avatar presence-avatar presence-${state.user.messenger_status || "offline"}` }, initials(state.user.name)), h("span", {}, `${state.user.name} (${displayRoles(state.user).join(", ") || "User"})`)]),
-      h("button", { class: "btn btn-soft", onclick: logout }, [icon("LogOut"), "Logout"]),
     ]);
   }
 
@@ -477,6 +468,15 @@
     return "dashboard";
   }
 
+  function notificationIcon(item) {
+    const key = notificationModuleKey(item);
+    if (key === "chatters") return "MessagesSquare";
+    if (key === "projects") return "FolderKanban";
+    if (key === "users") return "Users";
+    if (key === "monitoring") return "Activity";
+    return "Bell";
+  }
+
   function pageSubtitle() {
     const map = {
       dashboard: "Overview, quick actions, and recent workspace activity.",
@@ -484,6 +484,7 @@
       chatters: "Modern project conversation workspace with messages and attachments.",
       monitoring: "Scan activity and audit records without losing context.",
       users: "Create users, adjust roles, and manage access.",
+      settings: "Manage appearance, notifications, profile details, and sign out.",
     };
     return map[state.tab] || "";
   }
@@ -500,6 +501,7 @@
     if (state.tab === "chatters") return chattersView();
     if (state.tab === "monitoring") return monitoringView();
     if (state.tab === "users") return usersView();
+    if (state.tab === "settings") return settingsView();
     return dashboardView();
   }
 
@@ -957,6 +959,85 @@
       h("span", { class: "quick-copy" }, [h("strong", {}, title), h("small", {}, text)]),
       h("span", { class: "quick-arrow" }, [icon("ChevronRight", 16)]),
     ]);
+  }
+
+  function settingsView() {
+    const unread = state.notifications.filter((item) => !item.is_read).length;
+    const roleText = displayRoles(state.user).join(", ") || "User";
+    const email = state.user?.email || state.user?.login || "No email available";
+    const status = state.user?.messenger_status || "offline";
+    return page([
+      h("section", { class: "settings-grid" }, [
+        h("article", { class: "settings-card" }, [
+          settingsCardHead("Appearance", "Choose the workspace theme.", "Moon"),
+          h("div", { class: "settings-row" }, [
+            h("span", {}, [h("strong", {}, state.theme === "dark" ? "Dark mode" : "Light mode"), h("small", {}, "Applies instantly across AnoChat.")]),
+            h("button", { class: "settings-toggle", onclick: toggleTheme, "aria-pressed": state.theme === "dark" ? "true" : "false" }, [
+              h("span", { class: state.theme === "dark" ? "active" : "" }, [icon("Moon", 15), "Dark"]),
+              h("span", { class: state.theme === "light" ? "active" : "" }, [icon("Sun", 15), "Light"]),
+            ]),
+          ]),
+        ]),
+        h("article", { class: "settings-card" }, [
+          settingsCardHead("Notifications / Status", "Review alerts and update your availability.", "Bell"),
+          h("div", { class: "settings-status-grid" }, [
+            h("div", { class: "settings-status-tile" }, [
+              h("small", {}, "Unread notifications"),
+              h("strong", {}, String(unread)),
+              h("button", { class: "btn btn-soft compact-btn", onclick: toggleNotifications }, [icon("Bell", 15), state.notificationsOpen ? "Hide alerts" : "View alerts"]),
+            ]),
+            h("div", { class: "settings-status-tile" }, [
+              h("small", {}, "Current status"),
+              h("strong", {}, cap(status)),
+              presenceControl(),
+            ]),
+          ]),
+          state.notificationsOpen ? notificationPanel() : null,
+        ]),
+        h("article", { class: "settings-card account-settings-card" }, [
+          settingsCardHead("Account", "Your signed-in workspace profile.", "UserRound"),
+          h("div", { class: "settings-account" }, [
+            h("span", { class: `settings-avatar presence-avatar presence-${status}` }, initials(state.user?.name || "User")),
+            h("span", {}, [
+              h("strong", {}, state.user?.name || "AnoChat User"),
+              h("small", {}, roleText),
+              h("small", {}, email),
+            ]),
+          ]),
+          h("button", { class: "btn btn-soft", onclick: () => openModal("profile", state.user) }, [icon("UserRound", 16), "View profile"]),
+        ]),
+        h("article", { class: "settings-card danger-settings-card" }, [
+          settingsCardHead("Logout", "Sign out of this device safely.", "LogOut"),
+          h("p", {}, "You will need to sign in again to access this workspace."),
+          h("button", { class: "btn btn-danger", onclick: confirmLogout }, [icon("LogOut", 16), "Logout"]),
+        ]),
+      ]),
+    ], "settings-page");
+  }
+
+  function settingsCardHead(title, subtitle, iconName) {
+    return h("div", { class: "settings-card-head" }, [
+      h("span", { class: "settings-card-icon" }, [icon(iconName, 18)]),
+      h("span", {}, [h("strong", {}, title), h("small", {}, subtitle)]),
+    ]);
+  }
+
+  function notificationPanel() {
+    const items = state.notifications.slice(0, 6);
+    return h("div", { class: "settings-notification-panel" }, [
+      h("div", { class: "settings-notification-head" }, [
+        h("strong", {}, "Recent notifications"),
+        h("button", { class: "link-button", onclick: markNotificationsRead }, "Mark all read"),
+      ]),
+      items.length ? h("div", { class: "settings-notification-list" }, items.map((item) => h("div", { class: item.is_read ? "notification-item" : "notification-item unread" }, [
+        h("span", { class: "notification-icon" }, [icon(notificationIcon(item), 16)]),
+        h("span", {}, [h("strong", {}, item.title || "Notification"), h("small", {}, item.body || ""), h("time", {}, formatDate(item.created_at))]),
+      ]))) : h("div", { class: "notification-empty" }, [icon("Bell", 20), h("strong", {}, "No notifications"), h("small", {}, "You're all caught up.")]),
+    ]);
+  }
+
+  function confirmLogout() {
+    confirmAction("Logout?", "You will be signed out of this AnoChat workspace.", logout);
   }
 
   function projectsView() {
