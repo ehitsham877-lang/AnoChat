@@ -1369,7 +1369,7 @@
 
   function typingIndicator() {
     const users = state.typingUsers || [];
-    if (!users.length) return h("div", { class: "typing-indicator empty", "aria-live": "polite" });
+    if (!users.length) return null;
     const names = users.map((user) => user.name || `User ${user.id}`);
     const text = names.length === 1 ? `${names[0]} is typing...` : `${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2}` : ""} are typing...`;
     return h("div", { class: "typing-indicator", "aria-live": "polite" }, [

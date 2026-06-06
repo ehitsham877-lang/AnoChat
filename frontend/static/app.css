@@ -1434,6 +1434,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .conversation-copy { min-width: 0; display: grid; gap: 3px; }
 .conversation-copy small, .conversation-project { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-window { grid-template-rows: auto minmax(0, 1fr) auto; }
+.chat-window:has(.typing-indicator) {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+}
 .message-stream { min-height: 0; overflow: auto; display: grid; align-content: start; gap: 12px; padding: 4px 4px 14px; }
 .message-row { display: flex; justify-content: flex-start; }
 .message-row.own { justify-content: flex-end; }
@@ -5392,6 +5395,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-right: 1px solid rgba(226, 232, 240, .74);
 }
 .chat-page .chat-window.search-open {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.chat-page .chat-window.search-open:has(.typing-indicator) {
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
 }
 .chat-page .chat-panel-title h2 {
@@ -5914,7 +5920,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 12px 14px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid rgba(226, 232, 240, .55);
   background: #ffffff;
 }
 .chat-page .composer-bar {
