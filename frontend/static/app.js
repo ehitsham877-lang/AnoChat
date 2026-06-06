@@ -207,7 +207,6 @@
     const messageScrollTop = captureMessageScrollTop();
     const composerFocus = captureComposerFocus();
     const searchFocus = captureSearchFocus();
-    const audioPlayback = captureAudioPlayback();
     const shouldScrollMessagesBottom = state.scrollMessagesBottom;
     state.scrollMessagesBottom = false;
     const visibleNav = state.user ? availableNavItems() : navItems;
@@ -235,7 +234,7 @@
       state.modal ? modalView() : null,
       toastRegion(),
     ]));
-    afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus, searchFocus, audioPlayback);
+    afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus, searchFocus);
     ensureVisibleImagePreviews();
     ensureVisibleAudioPreviews();
   }
@@ -266,21 +265,7 @@
     };
   }
 
-  function captureAudioPlayback() {
-    const playing = [];
-    document.querySelectorAll("audio[data-audio-key]").forEach((audio) => {
-      if (audio.paused || audio.ended) return;
-      playing.push({
-        key: audio.dataset.audioKey,
-        currentTime: audio.currentTime || 0,
-        volume: audio.volume,
-        playbackRate: audio.playbackRate,
-      });
-    });
-    return playing;
-  }
-
-  function afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus, searchFocus, audioPlayback) {
+  function afterRender(messageScrollTop, shouldScrollMessagesBottom, renderCycle, composerFocus, searchFocus) {
     window.requestAnimationFrame(() => {
       if (renderCycle !== state.renderCycle) return;
       if (state.modal?.type === "user") {
@@ -295,20 +280,17 @@
       const stream = document.querySelector(".message-stream");
       if (!stream) {
         restoreComposerFocus(composerFocus);
-        restoreAudioPlayback(audioPlayback);
         return;
       }
       if (shouldScrollMessagesBottom) {
         stream.scrollTop = stream.scrollHeight;
         restoreComposerFocus(composerFocus);
-        restoreAudioPlayback(audioPlayback);
         return;
       }
       if (messageScrollTop !== null && messageScrollTop !== undefined) {
         stream.scrollTop = Math.min(messageScrollTop, stream.scrollHeight);
       }
       restoreComposerFocus(composerFocus);
-      restoreAudioPlayback(audioPlayback);
     });
   }
 
@@ -332,21 +314,6 @@
     const position = Math.min(input.value.length, composerFocus.start ?? input.value.length);
     const end = Math.min(input.value.length, composerFocus.end ?? position);
     input.setSelectionRange(position, end);
-  }
-
-  function restoreAudioPlayback(audioPlayback) {
-    (audioPlayback || []).forEach((item) => {
-      const audio = document.querySelector(`audio[data-audio-key="${item.key}"]`);
-      if (!audio) return;
-      const restore = () => {
-        if (Number.isFinite(item.currentTime)) audio.currentTime = Math.min(item.currentTime, audio.duration || item.currentTime);
-        audio.volume = item.volume;
-        audio.playbackRate = item.playbackRate || 1;
-        audio.play().catch(() => {});
-      };
-      if (audio.readyState >= 1) restore();
-      else audio.addEventListener("loadedmetadata", restore, { once: true });
-    });
   }
 
   function isAudioPlaying() {
@@ -1500,7 +1467,11 @@
     if (!state.audioPreviews[file.id]) {
       await loadAudioPreview(file);
     }
-    const audio = await findVoiceAudioElement(file);
+    let audio = await findVoiceAudioElement(file);
+    if (!audio && state.audioPreviews[file.id] && !isAudioPlaying()) {
+      render();
+      audio = await findVoiceAudioElement(file);
+    }
     if (!audio) return;
     document.querySelectorAll("audio[data-audio-key]").forEach((item) => {
       if (item !== audio) item.pause();
@@ -1531,14 +1502,14 @@
   function updateAudioState(fileId, audio, options = {}) {
     if (!fileId || !audio) return;
     const previous = state.audioState[fileId] || {};
-    const currentTime = options.ended ? (Number(audio.duration) || previous.duration || 0) : (Number(audio.currentTime) || 0);
+    const ended = options.ended || audio.ended;
+    const currentTime = ended ? 0 : (Number(audio.currentTime) || 0);
     const duration = Number(audio.duration) || previous.duration || 0;
-    const isPlaying = !options.ended && !audio.paused && !audio.ended;
+    const isPlaying = !ended && !audio.paused;
     if (options.throttle && Math.abs((previous.currentTime || 0) - currentTime) < 0.18 && previous.isPlaying === isPlaying) return;
     const next = { currentTime, duration, isPlaying };
     state.audioState = { ...state.audioState, [fileId]: next };
     updateVoiceCardDom(fileId, next);
-    if (!options.throttle) render();
   }
 
   function updateVoiceCardDom(fileId, item) {
@@ -1551,6 +1522,13 @@
     bars.forEach((bar, index) => bar.classList.toggle("played", index < played));
     const durationNode = card.querySelector(".voice-duration");
     if (durationNode) durationNode.textContent = formatDuration(item.isPlaying && item.currentTime ? item.currentTime : duration);
+    const playButton = card.querySelector(".voice-play-btn");
+    if (playButton) {
+      playButton.classList.toggle("playing", !!item.isPlaying);
+      playButton.title = item.isPlaying ? "Pause voice note" : "Play voice note";
+      playButton.setAttribute("aria-label", item.isPlaying ? "Pause voice note" : "Play voice note");
+      playButton.replaceChildren(icon(item.isPlaying ? "Pause" : "Play", 18));
+    }
   }
 
   function nextFrame() {
@@ -1837,10 +1815,14 @@
     });
   }
 
-  async function loadAudioPreview(file) {
-    if (!file || state.audioPreviews[file.id] || state.loadingAudio.has(file.id)) return;
+  async function loadAudioPreview(file, options = {}) {
+    if (!file || state.loadingAudio.has(file.id)) return;
+    if (state.audioPreviews[file.id]) {
+      if (!options.silent && !isAudioPlaying()) render();
+      return;
+    }
     state.loadingAudio.add(file.id);
-    render();
+    if (!options.silent && !isAudioPlaying()) render();
     try {
       const blob = await apiClient.get(`/api/attachments/${file.id}`);
       state.audioPreviews[file.id] = URL.createObjectURL(blob);
@@ -1848,13 +1830,13 @@
       toast(err.message || "Could not load voice note.", "error");
     } finally {
       state.loadingAudio.delete(file.id);
-      render();
+      if (!options.silent && !isAudioPlaying()) render();
     }
   }
 
   async function ensureVisibleAudioPreviews() {
     const files = state.messages.flatMap((message) => message.attachments || []).filter(isAudioFile);
-    files.slice(-20).forEach((file) => loadAudioPreview(file));
+    files.slice(-20).forEach((file) => loadAudioPreview(file, { silent: true }));
   }
 
   function mentionDropdown(chatter) {
