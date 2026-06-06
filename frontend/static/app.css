@@ -5929,18 +5929,18 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .chat-page .composer-bar {
   position: relative;
   min-width: 0;
-  min-height: 64px;
+  min-height: 48px;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px 48px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px 50px;
   align-items: center;
-  gap: 2px;
-  padding: 0 14px;
-  border-radius: 18px;
-  background: #f0f1fb;
+  gap: 8px;
+  padding: 0 0 0 12px;
+  border-radius: 0;
+  background: transparent;
 }
 .chat-page .composer-input-wrap {
   min-width: 0;
-  min-height: 64px;
+  min-height: 48px;
   border: 0;
   border-radius: 0;
   padding: 0;
@@ -5948,9 +5948,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .chat-page .composer-input-wrap input {
   width: 100%;
-  min-height: 64px;
+  min-height: 48px;
   color: #111827;
-  font-size: 16px;
+  font-size: 14px;
   background: transparent;
 }
 .chat-page .composer-input-wrap input::placeholder {
@@ -5958,31 +5958,42 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   font-weight: 500;
 }
 .chat-page .chat-file-chip,
-.chat-page .voice-btn,
-.chat-page .chat-send-btn {
+.chat-page .voice-btn {
   min-width: 0;
-  width: 40px;
-  max-width: 40px;
-  min-height: 40px;
+  width: 38px;
+  max-width: 38px;
+  min-height: 38px;
   padding: 0;
   border: 0;
   border-radius: 999px;
-  color: #3f3b6d;
+  color: #111827;
   background: transparent;
   box-shadow: none;
+}
+.chat-page .chat-file-chip,
+.chat-page .composer-input-wrap,
+.chat-page .voice-btn {
+  position: relative;
+  z-index: 1;
+}
+.chat-page .composer-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 58px 0 0;
+  border-radius: 15px;
+  background: #f1f3f5;
 }
 .chat-page .chat-file-chip .icon,
 .chat-page .voice-btn .icon,
 .chat-page .chat-send-btn .icon {
-  width: 25px;
-  height: 25px;
-  stroke-width: 1.9;
+  width: 21px;
+  height: 21px;
+  stroke-width: 2;
 }
 .chat-page .chat-file-chip:hover,
-.chat-page .voice-btn:hover,
-.chat-page .chat-send-btn:hover {
+.chat-page .voice-btn:hover {
   transform: none;
-  background: rgba(255,255,255,.62);
+  background: rgba(255,255,255,.72);
 }
 .chat-page .file-chip-text,
 .chat-page .voice-btn span,
@@ -5990,14 +6001,25 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   display: none;
 }
 .chat-page .chat-send-btn {
-  width: 44px;
-  max-width: 44px;
-  color: #3f3b6d;
-  background: transparent;
+  min-width: 48px;
+  width: 48px;
+  max-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  background: #0b8cff;
+  box-shadow: 0 10px 22px rgba(11, 140, 255, .22);
+}
+.chat-page .chat-send-btn:hover {
+  transform: none;
+  background: #087cec;
+  box-shadow: 0 12px 26px rgba(11, 140, 255, .26);
 }
 .chat-page .mention-menu {
   left: 44px;
-  right: 44px;
+  right: 58px;
   bottom: calc(100% + 8px);
 }
 .chat-page .chat-info-panel {
@@ -6073,6 +6095,28 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-theme="dark"] .chat-page .chat-info-media-grid button {
   color: #cbd5e1;
   background: #172033;
+}
+:root[data-theme="dark"] .chat-page .composer {
+  border-top-color: #263244;
+  background: #111827;
+}
+:root[data-theme="dark"] .chat-page .composer-bar::before {
+  background: #1f2a33;
+}
+:root[data-theme="dark"] .chat-page .composer-input-wrap,
+:root[data-theme="dark"] .chat-page .chat-file-chip,
+:root[data-theme="dark"] .chat-page .voice-btn {
+  border: 0;
+  color: #e5e7eb;
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .chat-page .composer-input-wrap input {
+  color: #f8fafc;
+}
+:root[data-theme="dark"] .chat-page .chat-file-chip:hover,
+:root[data-theme="dark"] .chat-page .voice-btn:hover {
+  background: rgba(255,255,255,.08);
 }
 
 @media (max-width: 1024px) {
@@ -6198,11 +6242,15 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
     min-height: 44px;
   }
   .chat-page .chat-file-chip,
-  .chat-page .voice-btn,
-  .chat-page .chat-send-btn {
+  .chat-page .voice-btn {
     width: 38px;
     max-width: 38px;
     min-height: 38px;
+  }
+  .chat-page .chat-send-btn {
+    width: 46px;
+    max-width: 46px;
+    min-height: 46px;
   }
   .filter-select .custom-select-menu,
   .custom-select-menu {
