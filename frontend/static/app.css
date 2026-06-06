@@ -1124,8 +1124,15 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 .btn:hover, .icon-btn:hover, .quick-card:hover { transform: translateY(-1px); }
+.btn:disabled,
+.icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+  transform: none;
+  box-shadow: none;
+}
 .btn-primary { color: #ffffff; background: var(--primary); }
-.btn-primary:hover { background: var(--primary-2); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-2); }
 .btn-soft, .icon-btn {
   color: var(--text);
   background: color-mix(in srgb, var(--surface) 82%, var(--surface-2));

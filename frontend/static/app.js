@@ -2468,6 +2468,9 @@
     const supported = pushSupported();
     const configured = !!state.pushConfig?.enabled;
     const enabled = !!prefs.browser_push_enabled;
+    const buttonText = state.pushBusy
+      ? "Saving..."
+      : (!supported || !configured ? "Push unavailable" : (enabled ? "Disable push" : "Enable push"));
     return h("div", { class: standalone ? "push-settings-panel standalone" : "push-settings-panel" }, [
       h("div", { class: "account-settings-head" }, [
         h("span", {}, [icon("Bell", 16)]),
@@ -2479,7 +2482,7 @@
           class: enabled ? "btn btn-outline" : "btn btn-primary",
           disabled: state.pushBusy || !supported || !configured,
           onclick: enabled ? disablePushNotifications : enablePushNotifications,
-        }, [icon(enabled ? "BellOff" : "Bell"), state.pushBusy ? "Saving..." : (enabled ? "Disable push" : "Enable push")]),
+        }, [icon(enabled ? "BellOff" : "Bell"), buttonText]),
       ]),
       h("label", { class: "check-row" }, [
         h("input", { type: "checkbox", checked: !!prefs.push_chatter_messages, onchange: (event) => saveNotificationPreference("push_chatter_messages", event.target.checked) }),
