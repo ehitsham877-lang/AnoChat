@@ -1642,7 +1642,7 @@
         ontimeupdate: (event) => updateAudioState(file.id, event.currentTarget, { throttle: true }),
         onended: (event) => updateAudioState(file.id, event.currentTarget, { ended: true }),
         onloadedmetadata: (event) => updateAudioState(file.id, event.currentTarget),
-      }) : h("button", { type: "button", class: "voice-load-btn", onclick: () => loadAudioPreview(file) }, state.loadingAudio.has(file.id) ? "Loading..." : "Load playback"),
+      }) : null,
     ]);
   }
 
