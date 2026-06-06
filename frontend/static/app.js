@@ -1019,7 +1019,6 @@
   }
 
   function settingsView() {
-    const unread = state.notifications.filter((item) => !item.is_read).length;
     const roleText = displayRoles(state.user).join(", ") || "User";
     const email = state.user?.email || state.user?.login || "No email available";
     const status = state.user?.messenger_status || "offline";
@@ -1039,17 +1038,11 @@
           settingsCardHead("Notifications / Status", "Review alerts and update your availability.", "Bell"),
           h("div", { class: "settings-status-grid" }, [
             h("div", { class: "settings-status-tile" }, [
-              h("small", {}, "Unread notifications"),
-              h("strong", {}, String(unread)),
-              h("button", { class: "btn btn-soft compact-btn", onclick: toggleNotifications }, [icon("Bell", 15), state.notificationsOpen ? "Hide alerts" : "View alerts"]),
-            ]),
-            h("div", { class: "settings-status-tile" }, [
               h("small", {}, "Current status"),
               h("strong", {}, cap(status)),
               presenceControl(),
             ]),
           ]),
-          state.notificationsOpen ? notificationPanel() : null,
         ]),
         h("article", { class: "settings-card account-settings-card" }, [
           settingsCardHead("Account", "Your signed-in workspace profile.", "UserRound"),
