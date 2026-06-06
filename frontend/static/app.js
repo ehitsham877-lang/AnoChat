@@ -1044,6 +1044,9 @@
             ]),
           ]),
         ]),
+        h("article", { class: "settings-card push-settings-card" }, [
+          pushSettingsPanel(true),
+        ]),
         h("article", { class: "settings-card account-settings-card" }, [
           settingsCardHead("Account", "Your signed-in workspace profile.", "UserRound"),
           h("div", { class: "settings-account" }, [
@@ -2457,16 +2460,15 @@
         field("New password", inputWrap("Lock", h("input", { name: "password", type: "password", placeholder: "Leave blank to keep current", minlength: "8", autocomplete: "new-password" }))),
       ]),
       h("button", { type: "submit", class: "btn btn-primary account-save-btn" }, [icon("Check"), "Save changes"]),
-      pushSettingsPanel(),
     ]);
   }
 
-  function pushSettingsPanel() {
+  function pushSettingsPanel(standalone) {
     const prefs = state.notificationPreferences || {};
     const supported = pushSupported();
     const configured = !!state.pushConfig?.enabled;
     const enabled = !!prefs.browser_push_enabled;
-    return h("div", { class: "push-settings-panel" }, [
+    return h("div", { class: standalone ? "push-settings-panel standalone" : "push-settings-panel" }, [
       h("div", { class: "account-settings-head" }, [
         h("span", {}, [icon("Bell", 16)]),
         h("div", {}, [h("strong", {}, "Push notifications"), h("small", {}, pushStatusText(supported, configured, enabled))]),

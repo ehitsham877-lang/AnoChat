@@ -3546,6 +3546,10 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   padding-top: 14px;
   border-top: 1px solid var(--soft-line);
 }
+.push-settings-panel.standalone {
+  padding-top: 0;
+  border-top: 0;
+}
 .push-toggle-row {
   display: flex;
   justify-content: flex-start;
