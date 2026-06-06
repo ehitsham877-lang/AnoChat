@@ -37,7 +37,7 @@
     stats: null,
     operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
     activeChatter: storedActiveChatterId(),
-    chatterInfoOpen: true,
+    chatterInfoOpen: false,
     chatInfoExpanded: { members: false, images: false, documents: false },
     scrollMessagesBottom: false,
     sendingMessage: false,
@@ -2726,6 +2726,8 @@
       state.editingMessage = null;
       state.editingBody = "";
       state.openMessageMenu = null;
+      state.chatterInfoOpen = false;
+      state.chatInfoExpanded = { members: false, images: false, documents: false };
       state.chatSearchOpen = false;
       state.chatMessageSearch = "";
       state.chatHeaderMenuOpen = false;
@@ -2754,6 +2756,7 @@
     state.replyTo = null;
     state.editingMessage = null;
     state.editingBody = "";
+    state.chatterInfoOpen = false;
     state.chatInfoExpanded = { members: false, images: false, documents: false };
     state.openMessageMenu = null;
     state.chatSearchOpen = false;
