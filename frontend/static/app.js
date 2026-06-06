@@ -1431,7 +1431,7 @@
     const playing = !!audioState.isPlaying;
     const progress = voiceProgress(file);
     const duration = audioState.duration || file.duration_seconds || 0;
-    return h("div", { class: "voice-note-card" }, [
+    return h("div", { class: "voice-note-card", "data-file-id": file.id }, [
       h("button", {
         type: "button",
         class: playing ? "voice-play-btn playing" : "voice-play-btn",
@@ -1500,15 +1500,22 @@
     const duration = Number(audio.duration) || previous.duration || 0;
     const isPlaying = !options.ended && !audio.paused && !audio.ended;
     if (options.throttle && Math.abs((previous.currentTime || 0) - currentTime) < 0.18 && previous.isPlaying === isPlaying) return;
-    state.audioState = {
-      ...state.audioState,
-      [fileId]: {
-        currentTime,
-        duration,
-        isPlaying,
-      },
-    };
-    render();
+    const next = { currentTime, duration, isPlaying };
+    state.audioState = { ...state.audioState, [fileId]: next };
+    updateVoiceCardDom(fileId, next);
+    if (!options.throttle) render();
+  }
+
+  function updateVoiceCardDom(fileId, item) {
+    const card = document.querySelector(`.voice-note-card[data-file-id="${fileId}"]`);
+    if (!card) return;
+    const duration = Number(item.duration) || 0;
+    const progress = duration ? Math.max(0, Math.min(1, (Number(item.currentTime) || 0) / duration)) : 0;
+    const bars = Array.from(card.querySelectorAll(".voice-waveform i"));
+    const played = Math.round(progress * bars.length);
+    bars.forEach((bar, index) => bar.classList.toggle("played", index < played));
+    const durationNode = card.querySelector(".voice-duration");
+    if (durationNode) durationNode.textContent = formatDuration(item.isPlaying && item.currentTime ? item.currentTime : duration);
   }
 
   function nextFrame() {
