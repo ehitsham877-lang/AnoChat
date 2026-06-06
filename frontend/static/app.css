@@ -3248,7 +3248,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(15, 23, 42, 0.48);
+  background: rgba(15, 23, 42, 0.36);
+  backdrop-filter: blur(2px);
 }
 .modal {
   width: min(720px, 100%);
@@ -3277,9 +3278,10 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-radius: 26px;
 }
 .message-info-modal {
-  width: min(420px, calc(100vw - 28px));
-  border-radius: 18px;
-  padding: 18px;
+  width: min(430px, calc(100vw - 28px));
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .18);
 }
 .image-preview-modal {
   width: min(920px, calc(100vw - 28px));
@@ -3314,9 +3316,10 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   gap: 12px;
 }
 .message-info-summary {
-  padding: 12px;
-  border-radius: 14px;
-  background: #f8fafc;
+  padding: 13px;
+  border: 1px solid var(--soft-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-2) 78%, transparent);
 }
 .message-info-icon {
   width: 34px;
@@ -3345,7 +3348,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .message-info-section {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 .message-info-title {
   display: flex;
@@ -3356,25 +3359,33 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   font-weight: 900;
 }
 .message-info-title small {
-  min-width: 24px;
+  min-width: 26px;
+  min-height: 22px;
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
   color: var(--muted);
-  background: #f1f5f9;
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+  font-size: 11px;
 }
 .message-info-list {
   display: grid;
   gap: 8px;
 }
 .message-info-person {
-  padding: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--surface) 86%, var(--surface-2));
 }
 .message-info-empty {
-  min-height: 72px;
+  min-height: 64px;
   display: grid;
   place-items: center;
-  gap: 8px;
+  padding: 14px;
+  border: 1px dashed var(--soft-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
   color: var(--muted);
   text-align: center;
   font-size: 13px;

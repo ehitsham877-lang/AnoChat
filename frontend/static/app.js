@@ -2557,7 +2557,7 @@
 
   function messageInfoBody(message) {
     const viewers = messageSeenViewers(message);
-    const sentAt = message?.created_at ? `${formatDate(message.created_at)} at ${formatMessageTime(message.created_at)}` : "Unknown";
+    const sentAt = message?.created_at ? `${formatDateOnly(message.created_at)} at ${formatMessageTime(message.created_at)}` : "Unknown";
     return h("div", { class: "message-info-body" }, [
       h("div", { class: "message-info-summary" }, [
         h("span", { class: "message-info-icon" }, [icon("Check", 16)]),
@@ -2575,7 +2575,6 @@
             h("small", {}, user.email || displayRoles(user).join(", ") || "Seen"),
           ]),
         ]))) : h("div", { class: "message-info-empty" }, [
-          icon("Eye", 16),
           h("span", {}, "No one has seen this message yet."),
         ]),
       ]),
@@ -3413,6 +3412,13 @@
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
+    }) : "";
+  }
+  function formatDateOnly(value) {
+    return value ? new Date(value).toLocaleDateString([], {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
     }) : "";
   }
   function messageDayKey(value) {
