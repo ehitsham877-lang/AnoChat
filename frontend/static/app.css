@@ -1158,6 +1158,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .icon-btn { width: 44px; padding: 0; }
 
 .notice-wrap { padding: 0 26px; }
+.notice-wrap:empty { display: none; }
 .loading-bar, .alert {
   margin-top: 16px;
   padding: 11px 13px;
@@ -1174,7 +1175,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   height: calc(100svh - 42px);
   min-height: 0;
   overflow: hidden;
-  padding-bottom: 20px;
+  padding: 0 18px 18px;
 }
 .card, .metric-card, .quick-card, .project-card {
   min-width: 0;
@@ -5290,7 +5291,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 
 /* Chatter clone layout */
 .chat-page {
-  padding: 18px;
+  padding: 0 18px 18px;
   height: calc(100vh - 42px);
   overflow: hidden;
 }
