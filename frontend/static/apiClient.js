@@ -7,6 +7,7 @@
 
   const API_BASE = normalizeApiBase(window.API_BASE || "");
   const TOKEN_KEY = "anochat_token";
+  const REQUEST_TIMEOUT_MS = 15000;
 
   function token() {
     return localStorage.getItem(TOKEN_KEY);
@@ -16,14 +17,21 @@
     const headers = Object.assign({}, options && options.headers ? options.headers : {});
     if (!(options && options.body instanceof FormData)) headers["Content-Type"] = "application/json";
     if (token()) headers.Authorization = "Bearer " + token();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     let response;
     try {
-      response = await fetch(API_BASE + path, Object.assign({}, options || {}, { headers }));
+      response = await fetch(API_BASE + path, Object.assign({}, options || {}, { headers, signal: controller.signal }));
     } catch (err) {
+      if (err && err.name === "AbortError") {
+        throw new Error("Backend request timed out. Check the backend URL and try again.");
+      }
       const missingConfig = !API_BASE && location.hostname.endsWith("vercel.app");
       throw new Error(missingConfig
         ? "Frontend API URL is missing. Add VERCEL_API_BASE in Vercel and redeploy."
         : "Cannot reach the backend. Check the backend URL and CORS settings.");
+    } finally {
+      window.clearTimeout(timeout);
     }
     if (!response.ok) {
       let detail = response.statusText;

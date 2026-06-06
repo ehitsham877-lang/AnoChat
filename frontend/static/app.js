@@ -847,7 +847,7 @@
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
       });
-      toast("Session expired. Please sign in again.", "error");
+      toast(err.message || "Could not restore your session. Please sign in again.", "error");
     } finally {
       state.bootstrapping = false;
       state.loading = false;
