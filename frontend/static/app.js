@@ -59,6 +59,7 @@
     attachmentPreviews: {},
     loadingPreviews: new Set(),
     audioPreviews: {},
+    audioState: {},
     loadingAudio: new Set(),
   };
 
@@ -607,6 +608,7 @@
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], emailLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+        audioState: {},
         chatInfoExpanded: { members: false, images: false, documents: false },
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
@@ -818,6 +820,7 @@
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], emailLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+        audioState: {},
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
       });
@@ -1424,7 +1427,10 @@
   function audioAttachment(file) {
     const src = state.audioPreviews[file.id];
     const key = `attachment-${file.id}`;
-    const playing = isVoicePlaying(file);
+    const audioState = voiceAudioState(file);
+    const playing = !!audioState.isPlaying;
+    const progress = voiceProgress(file);
+    const duration = audioState.duration || file.duration_seconds || 0;
     return h("div", { class: "voice-note-card" }, [
       h("button", {
         type: "button",
@@ -1433,15 +1439,25 @@
         "aria-label": playing ? "Pause voice note" : "Play voice note",
         onclick: () => toggleVoicePlayback(file),
       }, [icon(playing ? "Pause" : "Play", 18)]),
-      h("span", { class: "voice-waveform", "aria-hidden": "true" }, waveformBars()),
-      h("small", { class: "voice-duration" }, formatDuration(file.duration_seconds)),
-      src ? h("audio", { preload: "metadata", src, "data-audio-key": key, onplay: render, onpause: render, onended: render }) : h("button", { type: "button", class: "voice-load-btn", onclick: () => loadAudioPreview(file) }, state.loadingAudio.has(file.id) ? "Loading..." : "Load playback"),
+      h("span", { class: "voice-waveform", "aria-hidden": "true" }, waveformBars(progress)),
+      h("small", { class: "voice-duration" }, formatDuration(playing && audioState.currentTime ? audioState.currentTime : duration)),
+      src ? h("audio", {
+        preload: "metadata",
+        src,
+        "data-audio-key": key,
+        onplay: (event) => updateAudioState(file.id, event.currentTarget),
+        onpause: (event) => updateAudioState(file.id, event.currentTarget),
+        ontimeupdate: (event) => updateAudioState(file.id, event.currentTarget, { throttle: true }),
+        onended: (event) => updateAudioState(file.id, event.currentTarget, { ended: true }),
+        onloadedmetadata: (event) => updateAudioState(file.id, event.currentTarget),
+      }) : h("button", { type: "button", class: "voice-load-btn", onclick: () => loadAudioPreview(file) }, state.loadingAudio.has(file.id) ? "Loading..." : "Load playback"),
     ]);
   }
 
-  function waveformBars() {
+  function waveformBars(progress) {
     const bars = [14, 22, 11, 28, 18, 34, 24, 13, 30, 20, 16, 26, 12, 23, 18, 30, 14, 22, 10, 18];
-    return bars.map((height, index) => h("i", { class: index < 8 ? "played" : "", style: `height:${height}px` }));
+    const played = Math.round(Math.max(0, Math.min(1, progress || 0)) * bars.length);
+    return bars.map((height, index) => h("i", { class: index < played ? "played" : "", style: `height:${height}px` }));
   }
 
   async function toggleVoicePlayback(file) {
@@ -1454,8 +1470,45 @@
     document.querySelectorAll("audio[data-audio-key]").forEach((item) => {
       if (item !== audio) item.pause();
     });
-    if (audio.paused) audio.play().catch(() => toast("Could not play voice note.", "error"));
-    else audio.pause();
+    if (audio.paused) {
+      if (audio.ended) audio.currentTime = 0;
+      audio.play().catch(() => toast("Could not play voice note.", "error"));
+    } else {
+      audio.pause();
+    }
+  }
+
+  function voiceAudioState(file) {
+    return state.audioState[file?.id] || {
+      currentTime: 0,
+      duration: Number(file?.duration_seconds) || 0,
+      isPlaying: false,
+    };
+  }
+
+  function voiceProgress(file) {
+    const item = voiceAudioState(file);
+    const duration = Number(item.duration) || Number(file?.duration_seconds) || 0;
+    if (!duration) return 0;
+    return Math.max(0, Math.min(1, (Number(item.currentTime) || 0) / duration));
+  }
+
+  function updateAudioState(fileId, audio, options = {}) {
+    if (!fileId || !audio) return;
+    const previous = state.audioState[fileId] || {};
+    const currentTime = options.ended ? (Number(audio.duration) || previous.duration || 0) : (Number(audio.currentTime) || 0);
+    const duration = Number(audio.duration) || previous.duration || 0;
+    const isPlaying = !options.ended && !audio.paused && !audio.ended;
+    if (options.throttle && Math.abs((previous.currentTime || 0) - currentTime) < 0.18 && previous.isPlaying === isPlaying) return;
+    state.audioState = {
+      ...state.audioState,
+      [fileId]: {
+        currentTime,
+        duration,
+        isPlaying,
+      },
+    };
+    render();
   }
 
   function nextFrame() {
@@ -1536,11 +1589,6 @@
 
   function isAudioFile(file) {
     return String(file?.content_type || "").startsWith("audio/");
-  }
-
-  function isVoicePlaying(file) {
-    const audio = document.querySelector(`audio[data-audio-key="attachment-${file.id}"]`);
-    return !!audio && !audio.paused && !audio.ended;
   }
 
   function fileExtension(file) {
@@ -3212,6 +3260,7 @@
     Object.assign(state, {
       user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
       activityLogs: [], emailLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+      audioState: {},
       chatInfoExpanded: { members: false, images: false, documents: false },
       lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, bootstrapping: false, loading: false,
       operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
