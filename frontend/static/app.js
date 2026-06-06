@@ -65,6 +65,7 @@
     audioPreviews: {},
     audioState: {},
     loadingAudio: new Set(),
+    pendingAudioRender: false,
   };
 
   function storedActiveChatterId() {
@@ -325,6 +326,21 @@
 
   function isAudioPlaying() {
     return Array.from(document.querySelectorAll("audio[data-audio-key]")).some((audio) => !audio.paused && !audio.ended);
+  }
+
+  function renderWhenAudioIdle() {
+    if (isAudioPlaying()) {
+      state.pendingAudioRender = true;
+      return;
+    }
+    state.pendingAudioRender = false;
+    render();
+  }
+
+  function flushPendingAudioRender() {
+    if (!state.pendingAudioRender || isAudioPlaying()) return;
+    state.pendingAudioRender = false;
+    render();
   }
 
   function shellClass() {
@@ -609,7 +625,7 @@
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], emailLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
-        audioState: {},
+        audioState: {}, pendingAudioRender: false,
         chatInfoExpanded: { members: false, images: false, documents: false },
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
@@ -757,9 +773,9 @@
         state.messages = messages;
         state.lastMessageSignature = nextSignature;
         if (previousLast !== nextLast || messages.length > previousCount) state.scrollMessagesBottom = true;
-        if (!isAudioPlaying()) render();
-      } else if ((badgesChanged || typingChanged) && !isAudioPlaying()) {
-        render();
+        renderWhenAudioIdle();
+      } else if (badgesChanged || typingChanged) {
+        renderWhenAudioIdle();
       }
     } catch (err) {
       if (!silent) toast(err.message || "Could not refresh chatter messages.", "error");
@@ -788,9 +804,9 @@
         state.lastMessageSignature = "";
       }
       const shouldRenderPresence = state.tab !== "chatters" || !state.activeChatter || state.modal?.type === "profile";
-      if (shouldRenderPresence && (!state.modal || state.modal.type === "profile") && !isAudioPlaying()) {
+      if (shouldRenderPresence && (!state.modal || state.modal.type === "profile")) {
         if (state.modal?.type === "profile") state.modal = { type: "profile", data: me };
-        render();
+        renderWhenAudioIdle();
       }
     } catch (err) {
       if (!silent) toast(err.message || "Could not refresh presence.", "error");
@@ -821,7 +837,7 @@
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], emailLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
-        audioState: {},
+        audioState: {}, pendingAudioRender: false,
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
         operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
       });
@@ -1700,6 +1716,9 @@
     const next = { currentTime, duration, isPlaying };
     state.audioState = { ...state.audioState, [fileId]: next };
     updateVoiceCardDom(fileId, next);
+    if (previous.isPlaying && !next.isPlaying) {
+      window.requestAnimationFrame(flushPendingAudioRender);
+    }
   }
 
   function updateVoiceCardDom(fileId, item) {
@@ -2026,7 +2045,7 @@
 
   async function ensureVisibleAudioPreviews() {
     const files = state.messages.flatMap((message) => message.attachments || []).filter(isAudioFile);
-    files.slice(-20).forEach((file) => loadAudioPreview(file, { silent: true }));
+    files.slice(-3).forEach((file) => loadAudioPreview(file, { silent: true }));
   }
 
   function mentionDropdown(chatter) {
@@ -3483,7 +3502,7 @@
     Object.assign(state, {
       user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
       activityLogs: [], emailLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
-      audioState: {},
+      audioState: {}, pendingAudioRender: false,
       chatInfoExpanded: { members: false, images: false, documents: false },
       lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, bootstrapping: false, loading: false,
       operations: { tasks: [], documents: [], incidents: [], knowledge: [] },
