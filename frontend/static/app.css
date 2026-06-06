@@ -5390,6 +5390,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   box-shadow: none;
   overflow: hidden;
 }
+.chat-page .chat-window {
+  overflow: visible;
+}
 .chat-page .conversation-panel {
   padding: 18px 12px;
   border-right: 1px solid rgba(226, 232, 240, .74);
@@ -5436,6 +5439,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   box-shadow: none;
 }
 .chat-page .chat-head {
+  position: relative;
+  z-index: 150;
   min-height: 76px;
   padding: 14px 20px;
   border-bottom: 1px solid rgba(226, 232, 240, .74);
@@ -5546,6 +5551,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   background: transparent;
 }
 .chat-page .message-stream {
+  position: relative;
+  z-index: 1;
   gap: 14px;
   padding: 22px 34px;
   background: #f7f9fc;
