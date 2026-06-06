@@ -1134,7 +1134,7 @@
             active ? chatHeaderActions(active) : null,
           ]),
           active && state.chatSearchOpen ? chatMessageSearchBar() : null,
-          h("div", { class: "message-stream" }, active ? (visibleChatMessages().length ? messageTimeline(visibleChatMessages()) : (state.chatMessageSearch ? [chatEmptyState("No matching messages", "Try another search term.")] : [])) : [chatEmptyState("Select a conversation", "Choose a chatter from the list to view messages.")]),
+          h("div", { class: "message-stream" }, active ? (visibleChatMessages().length ? messageTimeline(visibleChatMessages()) : [chatEmptyState(state.chatMessageSearch ? "No matching messages" : "No messages yet", state.chatMessageSearch ? "Try another search term." : "Start the conversation with a message.")]) : [chatEmptyState("Select a conversation", "Choose a chatter from the list to view messages.")]),
           active ? typingIndicator() : null,
           active ? messageComposer() : null,
         ]),

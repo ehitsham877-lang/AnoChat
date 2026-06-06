@@ -5600,7 +5600,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   z-index: 1;
   gap: 14px;
   padding: 22px 34px;
-  background: transparent;
+  background: #f7f9fc;
 }
 .chat-page .message-row {
   display: grid;
