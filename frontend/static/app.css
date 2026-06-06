@@ -5421,7 +5421,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   overflow: hidden;
 }
 .chat-page .chat-window {
-  overflow: visible;
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 .chat-page .conversation-panel {
   padding: 18px 12px;
@@ -5612,9 +5614,18 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .chat-page .message-stream {
   position: relative;
   z-index: 1;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: grid;
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: max-content;
   gap: 14px;
   padding: 22px 34px;
   background: #f7f9fc;
+  overscroll-behavior: contain;
 }
 .chat-page .message-row {
   display: grid;

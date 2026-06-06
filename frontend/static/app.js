@@ -328,6 +328,12 @@
     return Array.from(document.querySelectorAll("audio[data-audio-key]")).some((audio) => !audio.paused && !audio.ended);
   }
 
+  function pauseAllAudio() {
+    document.querySelectorAll("audio[data-audio-key]").forEach((audio) => {
+      try { audio.pause(); } catch (_) {}
+    });
+  }
+
   function renderWhenAudioIdle() {
     if (isAudioPlaying()) {
       state.pendingAudioRender = true;
@@ -2747,6 +2753,7 @@
   async function selectChatter(id) {
     if (sameId(state.activeChatter, id) && state.messages.length) return;
     try {
+      pauseAllAudio();
       setActiveChatter(id);
       state.mention = { open: false, query: "" };
       state.replyTo = null;
@@ -2759,6 +2766,11 @@
       state.chatMessageSearch = "";
       state.chatHeaderMenuOpen = false;
       state.pendingVoiceDuration = null;
+      state.typingUsers = [];
+      state.messages = [];
+      state.lastMessageSignature = "";
+      state.scrollMessagesBottom = false;
+      render();
       state.messages = await apiClient.get(`/api/chatters/${id}/messages`);
       markChatterReadLocally(id);
       state.lastMessageSignature = messageSignature(state.messages);
@@ -2775,6 +2787,7 @@
   async function openChatter(id) {
     if (state.tab === "chatters" && sameId(state.activeChatter, id) && state.messages.length) return;
     if (state.activeChatter && state.composerBody.trim()) await syncTypingState(false, true);
+    pauseAllAudio();
     cancelVoiceRecording(true);
     setActiveChatter(id);
     state.tab = "chatters";
@@ -2790,6 +2803,8 @@
     state.chatMessageSearch = "";
     state.chatHeaderMenuOpen = false;
     state.typingUsers = [];
+    state.messages = [];
+    state.lastMessageSignature = "";
     state.lastTypingPingAt = 0;
     localStorage.setItem("anochat_tab", "chatters");
     state.scrollMessagesBottom = true;
