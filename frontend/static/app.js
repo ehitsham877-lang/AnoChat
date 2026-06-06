@@ -232,7 +232,7 @@
     app.appendChild(h("div", { class: shellClass() }, [
       sidebar(),
       h("div", { class: "mobile-scrim", onclick: () => { state.mobileSidebarOpen = false; render(); } }),
-      h("div", { class: "main-shell" }, [topbar(), notices(), currentView()]),
+      h("div", { class: "main-shell" }, [mobileMenuTrigger(), notices(), currentView()]),
       state.modal ? modalView() : null,
       toastRegion(),
     ]));
@@ -407,14 +407,13 @@
     ]);
   }
 
-  function topbar() {
-    const label = availableNavItems().find((item) => item.key === state.tab)?.label || "Dashboard";
-    return h("header", { class: "topbar" }, [
-      h("div", { class: "top-left" }, [
-        h("button", { class: "icon-btn mobile-only", onclick: () => { state.mobileSidebarOpen = true; render(); } }, [icon("Menu")]),
-        h("div", {}, [h("h1", {}, label), h("p", { class: "muted" }, pageSubtitle())]),
-      ]),
-    ]);
+  function mobileMenuTrigger() {
+    return h("button", {
+      class: "mobile-menu-trigger mobile-only",
+      onclick: () => { state.mobileSidebarOpen = true; render(); },
+      title: "Open menu",
+      "aria-label": "Open menu",
+    }, [icon("Menu")]);
   }
 
   function presenceControl() {

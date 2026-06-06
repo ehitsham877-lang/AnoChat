@@ -698,6 +698,15 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .collapsed .main-shell { margin-left: 106px; }
 .mobile-scrim { display: none; }
+.mobile-menu-trigger {
+  position: sticky;
+  top: 12px;
+  z-index: 12;
+  width: 44px;
+  height: 44px;
+  margin: 12px 16px 0;
+  border-radius: 16px;
+}
 .topbar {
   min-height: 84px;
   position: sticky;
@@ -1178,7 +1187,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 
 .page { min-width: 0; display: grid; gap: 18px; padding: 22px 26px 36px; }
 .chat-page {
-  height: calc(100svh - 116px);
+  height: calc(100svh - 42px);
   min-height: 0;
   overflow: hidden;
   padding-bottom: 20px;
@@ -4777,6 +4786,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
     background: rgba(15, 23, 42, 0.42);
   }
   .mobile-open .mobile-scrim { display: block; }
+  .mobile-menu-trigger { display: inline-grid !important; place-items: center; }
   .topbar { position: static; flex-direction: column; align-items: stretch; margin: 12px 16px 0; padding: 16px; border-radius: 24px; }
   .top-actions { flex-wrap: wrap; }
   .profile-pill { max-width: 100%; }
