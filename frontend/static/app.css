@@ -3244,7 +3244,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 1000;
   display: grid;
   place-items: center;
   padding: 18px;
@@ -3284,7 +3284,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   box-shadow: 0 24px 70px rgba(15, 23, 42, .18);
 }
 .image-preview-modal {
-  width: min(920px, calc(100vw - 28px));
+  width: min(1180px, calc(100vw - 28px));
+  max-height: calc(100svh - 32px);
+  overflow: auto;
   padding: 16px;
   border-radius: 26px;
 }
@@ -3392,7 +3394,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .image-lightbox-frame {
   min-height: 240px;
-  max-height: min(66vh, 680px);
+  max-height: min(78svh, 820px);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -3404,7 +3406,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .image-lightbox-frame img {
   max-width: 100%;
-  max-height: min(66vh, 680px);
+  max-height: min(78svh, 820px);
   display: block;
   object-fit: contain;
   border-radius: 18px;
@@ -5102,10 +5104,10 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   }
   .image-lightbox-frame {
     min-height: 220px;
-    max-height: 58vh;
+    max-height: 70svh;
   }
   .image-lightbox-frame img {
-    max-height: 58vh;
+    max-height: 70svh;
   }
   .image-lightbox-footer {
     align-items: stretch;
