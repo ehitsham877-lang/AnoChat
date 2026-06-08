@@ -386,6 +386,7 @@
       state.sidebarCollapsed ? "collapsed" : "",
       state.mobileSidebarOpen ? "mobile-open" : "",
       state.loading ? "is-loading" : "",
+      state.modal ? "modal-open" : "",
     ].join(" ");
   }
 

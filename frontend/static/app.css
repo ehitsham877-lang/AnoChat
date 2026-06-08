@@ -5514,6 +5514,11 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-bottom: 1px solid rgba(226, 232, 240, .74);
   background: #ffffff;
 }
+.modal-open .chat-page .chat-head,
+.modal-open .chat-page .chat-header-menu,
+.modal-open .chat-page .message-options-menu {
+  z-index: 1;
+}
 .chat-page .chat-header-avatar {
   width: 0;
   height: 0;
