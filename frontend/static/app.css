@@ -3370,8 +3370,46 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   padding-bottom: 18px;
 }
 .activity-toolbar {
-  grid-template-columns: minmax(260px, 1.2fr) repeat(3, minmax(150px, .65fr)) repeat(2, minmax(145px, .55fr)) repeat(2, minmax(132px, .5fr)) auto;
-  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, .78);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,250,252,.92));
+  box-shadow: 0 10px 26px rgba(15,23,42,.04);
+}
+.activity-toolbar .search-box {
+  flex: 1 1 300px;
+  min-width: 260px;
+}
+.activity-toolbar .filter-select,
+.activity-toolbar .audit-date-field {
+  flex: 1 1 170px;
+  min-width: 150px;
+}
+.activity-toolbar .audit-toolbar-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 4px;
+}
+.activity-toolbar .search-box input,
+.activity-toolbar .filter-select,
+.activity-toolbar .audit-date-field input {
+  min-height: 52px;
+}
+.activity-toolbar .search-box input {
+  background: #f8fafc;
+}
+.activity-toolbar .filter-select {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.activity-toolbar .filter-select > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .01em;
 }
 .audit-date-field {
   min-width: 0;
@@ -3386,13 +3424,13 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .audit-date-field input {
   width: 100%;
-  min-height: 42px;
+  min-height: 52px;
   border: 1px solid var(--soft-line);
-  border-radius: 14px;
-  padding: 0 12px;
+  border-radius: 16px;
+  padding: 0 13px;
   color: var(--text);
-  background: var(--surface);
-  font-weight: 750;
+  background: #ffffff;
+  font-weight: 780;
 }
 .audit-toolbar-actions {
   display: inline-flex;
@@ -3402,8 +3440,17 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   flex-wrap: wrap;
 }
 .audit-toolbar-actions .btn {
-  min-height: 42px;
+  min-height: 52px;
+  border-radius: 16px;
   white-space: nowrap;
+}
+.activity-export-btn {
+  color: var(--primary);
+  background: #eff6ff;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line));
+}
+.activity-export-btn:hover:not(:disabled) {
+  background: #e0efff;
 }
 .monitoring-feed {
   max-height: min(560px, 58vh);
@@ -5095,11 +5142,24 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   background: rgba(15, 23, 42, .78);
   box-shadow: none;
 }
+:root[data-theme="dark"] .activity-toolbar {
+  border-color: #263244;
+  background: linear-gradient(180deg, rgba(15,23,42,.94), rgba(15,23,42,.84));
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .22);
+}
 :root[data-theme="dark"] .projects-toolbar .search-box input:focus,
 :root[data-theme="dark"] .filter-select:focus-within,
 :root[data-theme="dark"] .audit-date-field input:focus {
   background: #111827;
   box-shadow: 0 0 0 4px rgba(96, 165, 250, .12);
+}
+:root[data-theme="dark"] .activity-export-btn {
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, .14);
+  border-color: rgba(96, 165, 250, .24);
+}
+:root[data-theme="dark"] .activity-export-btn:hover:not(:disabled) {
+  background: rgba(37, 99, 235, .2);
 }
 :root[data-theme="dark"] .btn-soft,
 :root[data-theme="dark"] .icon-btn {
@@ -5569,6 +5629,20 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   .projects-toolbar .search-box {
     grid-column: 1 / -1;
   }
+  .activity-toolbar {
+    padding: 14px;
+  }
+  .activity-toolbar .search-box,
+  .activity-toolbar .filter-select,
+  .activity-toolbar .audit-date-field,
+  .activity-toolbar .audit-toolbar-actions {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .activity-toolbar .audit-toolbar-actions .btn {
+    flex: 1 1 0;
+  }
   .users-toolbar { grid-template-columns: 1fr; }
   .users-create-btn { width: 100%; }
 }
@@ -5610,6 +5684,25 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   }
   .users-toolbar { grid-template-columns: 1fr; padding: 14px; }
   .projects-new-btn { width: 100%; }
+  .activity-toolbar {
+    padding: 12px;
+    gap: 10px;
+    border-radius: 20px;
+  }
+  .activity-toolbar .search-box,
+  .activity-toolbar .filter-select,
+  .activity-toolbar .audit-date-field,
+  .activity-toolbar .audit-toolbar-actions {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .activity-toolbar .audit-toolbar-actions {
+    width: 100%;
+  }
+  .activity-toolbar .audit-toolbar-actions .btn {
+    flex: 1 1 100%;
+  }
   .projects-empty-state {
     min-height: 300px;
     padding: 32px 18px;

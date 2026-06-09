@@ -2435,7 +2435,7 @@
         h("div", { class: "audit-toolbar-actions" }, [
           h("button", { type: "button", class: "btn btn-soft", onclick: applyAuditFilters }, [icon("Search", 16), "Apply"]),
           h("button", { type: "button", class: "btn btn-outline", onclick: resetAuditFilters }, "Reset"),
-          h("button", { type: "button", class: "btn btn-primary", onclick: exportAuditLogs }, [icon("Download", 16), "Export CSV"]),
+          h("button", { type: "button", class: "btn btn-soft activity-export-btn", onclick: exportAuditLogs }, [icon("Download", 16), "Export CSV"]),
         ]),
       ]),
       h("article", { class: "card monitoring-activity-card" }, [cardHeader("Activity Log", `${logs.length} audit event${logs.length === 1 ? "" : "s"} shown`), monitoringActivityList(logs)]),
