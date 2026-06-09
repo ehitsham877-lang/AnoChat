@@ -1725,8 +1725,8 @@
             ]),
           ]),
           message.reply_to_id ? replyPreview(message) : null,
-          bodyText ? h("p", {}, bodyText) : null,
           hasAttachments ? h("div", { class: "attachment-strip" }, message.attachments.map(messageAttachment)) : null,
+          bodyText ? h("p", { class: hasAttachments ? "attachment-caption" : "" }, bodyText) : null,
           h("div", { class: "bubble-footer" }, [
             h("time", {}, stamp),
           ]),

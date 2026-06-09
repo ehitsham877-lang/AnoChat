@@ -7193,6 +7193,22 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .chat-page .bubble.attachment-bubble:not(.voice-bubble) .attachment-strip:has(.message-image-tile:only-child) {
   display: block;
 }
+.chat-page .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
+  width: fit-content;
+  max-width: min(420px, 70vw);
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  color: #111827;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+}
+.chat-page .own .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
+  justify-self: end;
+  color: #ffffff;
+  background: #0b8cff;
+  box-shadow: none;
+}
 .chat-page .message-image-tile {
   width: 100%;
   min-width: 0;
@@ -7232,6 +7248,16 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 :root[data-theme="dark"] .chat-page .message-file-meta small {
   color: #cbd5e1;
+}
+:root[data-theme="dark"] .chat-page .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
+  color: #f8fafc;
+  background: #172033;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .2);
+}
+:root[data-theme="dark"] .chat-page .own .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
+  color: #ffffff;
+  background: #0b8cff;
+  box-shadow: none;
 }
 .chat-page .own .bubble.attachment-bubble:not(.voice-bubble) .attachment-strip {
   justify-items: end;
