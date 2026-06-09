@@ -1128,22 +1128,6 @@
                 settingsInfoItem("Status", cap(status)),
               ]),
             ]),
-            h("article", { class: "settings-detail-card", id: "settings-appearance" }, [
-              settingsDetailHead("Workspace Preferences"),
-              h("div", { class: "settings-preference-list" }, [
-                h("div", { class: "settings-row" }, [
-                  h("span", {}, [h("strong", {}, state.theme === "dark" ? "Dark mode" : "Light mode"), h("small", {}, "Applies instantly across AnoChat.")]),
-                  h("button", { class: "settings-toggle", onclick: toggleTheme, "aria-pressed": state.theme === "dark" ? "true" : "false" }, [
-                    h("span", { class: state.theme === "dark" ? "active" : "" }, [icon("Moon", 15), "Dark"]),
-                    h("span", { class: state.theme === "light" ? "active" : "" }, [icon("Sun", 15), "Light"]),
-                  ]),
-                ]),
-                h("div", { class: "settings-row settings-presence-row" }, [
-                  h("span", {}, [h("strong", {}, "Current status"), h("small", {}, cap(status))]),
-                  presenceControl(),
-                ]),
-              ]),
-            ]),
             h("article", { class: "settings-detail-card settings-panel-card notification-history-card", id: "settings-notifications" }, [
               notificationHistoryPanel(),
             ]),
