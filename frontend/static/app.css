@@ -6738,6 +6738,20 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   background: #f3f7ff;
   box-shadow: none;
 }
+.chat-page .conversation.unread {
+  border-color: rgba(37, 99, 235, .18);
+  background: #f8fbff;
+}
+.chat-page .conversation.unread::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: #22c55e;
+}
 .chat-page .conversation.active {
   border-color: rgba(37, 99, 235, .24);
   background: #eef5ff;
@@ -6768,8 +6782,31 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   font-size: 15px;
   line-height: 1.2;
 }
+.chat-page .conversation.unread .conversation-title-row strong {
+  font-weight: 900;
+}
+.chat-page .conversation-unread-badge {
+  min-width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 0 6px;
+  color: #ffffff;
+  background: #22c55e;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(34, 197, 94, .22);
+}
 .chat-page .conversation-preview-row small {
   font-size: 12px;
+}
+.chat-page .conversation.unread .conversation-preview-row small {
+  color: #0f172a;
+  font-weight: 800;
 }
 .chat-page .conversation-preview-row .member-avatar-stack {
   margin-left: auto;
@@ -6777,6 +6814,13 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-theme="dark"] .chat-page .conversation {
   border-color: transparent;
   background: #111827;
+}
+:root[data-theme="dark"] .chat-page .conversation.unread {
+  border-color: rgba(96, 165, 250, .22);
+  background: #132036;
+}
+:root[data-theme="dark"] .chat-page .conversation.unread::after {
+  background: #34d399;
 }
 :root[data-theme="dark"] .chat-page .conversation:hover {
   background: #172033;
@@ -6798,6 +6842,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-theme="dark"] .chat-page .conversation-project,
 :root[data-theme="dark"] .chat-page .conversation-preview-row small {
   color: #cbd5e1;
+}
+:root[data-theme="dark"] .chat-page .conversation.unread .conversation-preview-row small {
+  color: #f8fafc;
 }
 .chat-page .chat-head {
   position: relative;

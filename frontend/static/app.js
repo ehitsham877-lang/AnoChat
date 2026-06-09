@@ -1431,23 +1431,28 @@
 
   function chatterList(limit, openOnClick) {
     const rows = filteredChatters(limit);
-    return rows.length ? h("div", { class: "conversation-list" }, rows.map((c) => h("button", {
-      class: sameId(c.id, state.activeChatter) ? "conversation active" : "conversation",
-      "aria-current": sameId(c.id, state.activeChatter) ? "true" : null,
-      onclick: () => openOnClick ? openChatter(c.id) : selectChatter(c.id),
-    }, [
-      h("span", { class: "conversation-avatar" }, [h("i", { class: "online-dot" }), initials(c.name)]),
-      h("span", { class: "conversation-copy" }, [
-        h("span", { class: "conversation-title-row" }, [
-          h("strong", {}, c.name),
-          projectLabelForChatter(c) ? h("small", { class: "conversation-project" }, projectLabelForChatter(c)) : null,
+    return rows.length ? h("div", { class: "conversation-list" }, rows.map((c) => {
+      const unread = Number(c.unread_count || 0);
+      const active = sameId(c.id, state.activeChatter);
+      return h("button", {
+        class: `${active ? "conversation active" : "conversation"}${unread > 0 ? " unread" : ""}`,
+        "aria-current": active ? "true" : null,
+        onclick: () => openOnClick ? openChatter(c.id) : selectChatter(c.id),
+      }, [
+        h("span", { class: "conversation-avatar" }, [h("i", { class: "online-dot" }), initials(c.name)]),
+        h("span", { class: "conversation-copy" }, [
+          h("span", { class: "conversation-title-row" }, [
+            h("strong", {}, c.name),
+            unread > 0 ? h("span", { class: "conversation-unread-badge", title: `${unread} unread message${unread === 1 ? "" : "s"}` }, unread > 99 ? "99+" : String(unread)) : null,
+            projectLabelForChatter(c) ? h("small", { class: "conversation-project" }, projectLabelForChatter(c)) : null,
+          ]),
+          h("span", { class: "conversation-preview-row" }, [
+            h("small", {}, c.last_message_preview || "No messages yet"),
+            memberAvatars(c),
+          ]),
         ]),
-        h("span", { class: "conversation-preview-row" }, [
-          h("small", {}, c.last_message_preview || "No messages yet"),
-          memberAvatars(c),
-        ]),
-      ]),
-    ]))) : h("div", { class: "chat-empty-compact" }, [h("span", {}, [icon("MessagesSquare")]), h("strong", {}, "No conversations"), h("p", {}, "Try another search or create a chatter.")]);
+      ]);
+    })) : h("div", { class: "chat-empty-compact" }, [h("span", {}, [icon("MessagesSquare")]), h("strong", {}, "No conversations"), h("p", {}, "Try another search or create a chatter.")]);
   }
 
   function filteredChatters(limit) {
