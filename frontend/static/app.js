@@ -1434,6 +1434,7 @@
     return rows.length ? h("div", { class: "conversation-list" }, rows.map((c) => {
       const unread = Number(c.unread_count || 0);
       const active = sameId(c.id, state.activeChatter);
+      const activityTime = c.last_activity ? formatMessageTime(c.last_activity) : "";
       return h("button", {
         class: `${active ? "conversation active" : "conversation"}${unread > 0 ? " unread" : ""}`,
         "aria-current": active ? "true" : null,
@@ -1443,8 +1444,11 @@
         h("span", { class: "conversation-copy" }, [
           h("span", { class: "conversation-title-row" }, [
             h("strong", {}, c.name),
-            unread > 0 ? h("span", { class: "conversation-unread-badge", title: `${unread} unread message${unread === 1 ? "" : "s"}` }, unread > 99 ? "99+" : String(unread)) : null,
             projectLabelForChatter(c) ? h("small", { class: "conversation-project" }, projectLabelForChatter(c)) : null,
+            h("span", { class: "conversation-row-meta" }, [
+              activityTime ? h("time", {}, activityTime) : null,
+              unread > 0 ? h("span", { class: "conversation-unread-badge", title: `${unread} unread message${unread === 1 ? "" : "s"}` }, unread > 99 ? "99+" : String(unread)) : null,
+            ]),
           ]),
           h("span", { class: "conversation-preview-row" }, [
             h("small", {}, c.last_message_preview || "No messages yet"),
@@ -1929,6 +1933,7 @@
         h("strong", {}, file.filename || "Attachment"),
         h("small", {}, prettyBytes(file.size_bytes || 0)),
       ]),
+      h("span", { class: "message-file-download", "aria-hidden": "true" }, [icon("Download", 18)]),
     ]);
   }
 
