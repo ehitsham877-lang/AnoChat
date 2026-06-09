@@ -7217,11 +7217,15 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .chat-page .bubble.attachment-bubble:not(.voice-bubble) {
   width: fit-content;
   max-width: min(420px, 70vw);
-  padding: 0;
-  background: transparent;
+  padding: 8px;
+  border-radius: 16px 16px 16px 4px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .06);
 }
 .chat-page .own .bubble.attachment-bubble:not(.voice-bubble) {
-  background: transparent;
+  border-radius: 16px 4px 16px 16px;
+  background: #0b8cff;
+  box-shadow: none;
 }
 .chat-page .bubble.attachment-bubble:not(.voice-bubble) .message-actions {
   top: 8px;
@@ -7241,19 +7245,18 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   display: block;
 }
 .chat-page .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
-  width: fit-content;
+  width: 100%;
   max-width: min(420px, 70vw);
-  margin: 6px 0 0;
-  padding: 8px 10px;
-  border-radius: 12px;
+  margin: 8px 0 0;
+  padding: 0 2px 1px;
+  border-radius: 0;
   color: #111827;
-  background: #ffffff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+  background: transparent;
+  box-shadow: none;
 }
 .chat-page .own .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
-  justify-self: end;
   color: #ffffff;
-  background: #0b8cff;
+  background: transparent;
   box-shadow: none;
 }
 .chat-page .message-image-tile {
@@ -7296,14 +7299,22 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-theme="dark"] .chat-page .message-file-meta small {
   color: #cbd5e1;
 }
-:root[data-theme="dark"] .chat-page .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
-  color: #f8fafc;
+:root[data-theme="dark"] .chat-page .bubble.attachment-bubble:not(.voice-bubble) {
   background: #172033;
   box-shadow: 0 14px 34px rgba(0, 0, 0, .2);
 }
+:root[data-theme="dark"] .chat-page .own .bubble.attachment-bubble:not(.voice-bubble) {
+  background: #0b8cff;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .chat-page .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
+  color: #f8fafc;
+  background: transparent;
+  box-shadow: none;
+}
 :root[data-theme="dark"] .chat-page .own .bubble.attachment-bubble:not(.voice-bubble) .attachment-caption {
   color: #ffffff;
-  background: #0b8cff;
+  background: transparent;
   box-shadow: none;
 }
 .chat-page .own .bubble.attachment-bubble:not(.voice-bubble) .attachment-strip {
