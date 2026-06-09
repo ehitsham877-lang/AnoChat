@@ -264,12 +264,58 @@ class NotificationPreferenceOut(BaseModel):
     browser_push_enabled: bool
     push_chatter_messages: bool
     push_workspace_updates: bool
+    email_alerts_enabled: bool
+    email_chatter_messages: bool
+    email_workspace_updates: bool
 
 
 class NotificationPreferenceUpdate(BaseModel):
     browser_push_enabled: bool | None = None
     push_chatter_messages: bool | None = None
     push_workspace_updates: bool | None = None
+    email_alerts_enabled: bool | None = None
+    email_chatter_messages: bool | None = None
+    email_workspace_updates: bool | None = None
+
+
+class NotificationCountOut(BaseModel):
+    unread_count: int
+
+
+class AccessRequestCreate(BaseModel):
+    resource_type: str
+    project_id: int | None = None
+    chatter_id: int | None = None
+    message: str | None = None
+
+
+class AccessRequestOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    requester_id: int
+    requester_name: str
+    requester_email: str | None = None
+    resource_type: str
+    resource_id: int
+    resource_name: str
+    project_id: int | None = None
+    chatter_id: int | None = None
+    message: str | None = None
+    status: str
+    processed_by_id: int | None = None
+    processed_by_name: str | None = None
+    processed_at: datetime | None = None
+    created_at: datetime
+
+
+class AccessRequestOption(BaseModel):
+    id: int
+    name: str
+
+
+class AccessRequestOptionsOut(BaseModel):
+    projects: list[AccessRequestOption] = Field(default_factory=list)
+    chatters: list[AccessRequestOption] = Field(default_factory=list)
 
 
 class PushSubscriptionKeys(BaseModel):

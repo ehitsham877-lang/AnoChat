@@ -12,6 +12,7 @@ from app.models import Chatter, Message, TypingState, User
 from app.messages.presenter import message_out
 from app.messages.sanitize import sanitize_chatter_message
 from app.notifications.service import PUSH_CHATTER_MESSAGE, create_notification, notify_users
+from app.rate_limit import message_rate_limit_dependency, sensitive_action_rate_limit_dependency, typing_rate_limit_dependency
 from app.roles.permissions import assert_chatter_access, can_access_chatter, is_admin, require_chatter_write_access, require_roles, require_write_access
 from app.schemas import ChatterCreate, ChatterOut, ChatterUpdate, MessageCreate, MessageOut, TypingStateUpdate, TypingUserOut
 
@@ -46,7 +47,7 @@ def list_chatters(db: Session = Depends(get_db), current_user: User = Depends(ge
     return [chatter_with_read_only(db, chatter, current_user) for chatter in visible]
 
 
-@router.post("", response_model=ChatterOut, status_code=201)
+@router.post("", response_model=ChatterOut, status_code=201, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def create_chatter(payload: ChatterCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     require_roles(current_user, {"admin"})
     require_write_access(current_user)
@@ -60,7 +61,7 @@ def create_chatter(payload: ChatterCreate, db: Session = Depends(get_db), curren
     db.flush()
     set_chatter_members(db, chatter, member_ids, read_only_member_ids)
     create_notification(db, current_user.id, "Chatter created", f"{chatter.name} is ready for conversations.")
-    log_activity(db, "chatter_created", f"{current_user.name} created chatter {chatter.name}.", current_user.id)
+    log_activity(db, "chatter_created", f"{current_user.name} created chatter {chatter.name}.", current_user.id, project_id=chatter.project_id, chatter_id=chatter.id)
     db.commit()
     db.refresh(chatter)
     return chatter_with_read_only(db, chatter, current_user)
@@ -73,7 +74,7 @@ def get_chatter(chatter_id: int, db: Session = Depends(get_db), current_user: Us
     return chatter_with_read_only(db, chatter, current_user)
 
 
-@router.put("/{chatter_id}", response_model=ChatterOut)
+@router.put("/{chatter_id}", response_model=ChatterOut, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def update_chatter(chatter_id: int, payload: ChatterUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     chatter = get_or_404(db, Chatter, chatter_id)
     if not is_admin(current_user):
@@ -91,20 +92,20 @@ def update_chatter(chatter_id: int, payload: ChatterUpdate, db: Session = Depend
             member_ids if member_ids is not None else [member.id for member in chatter.members],
             read_only_member_ids if read_only_member_ids is not None else read_only_chatter_member_ids(db, chatter.id),
         )
-    log_activity(db, "chatter_updated", f"{current_user.name} updated chatter {chatter.name}.", current_user.id)
+    log_activity(db, "chatter_updated", f"{current_user.name} updated chatter {chatter.name}.", current_user.id, project_id=chatter.project_id, chatter_id=chatter.id)
     db.commit()
     db.refresh(chatter)
     return chatter_with_read_only(db, chatter, current_user)
 
 
-@router.delete("/{chatter_id}")
+@router.delete("/{chatter_id}", dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def delete_chatter(chatter_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     chatter = get_or_404(db, Chatter, chatter_id)
     if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Only admins can delete chatters")
     require_chatter_write_access(db, current_user, chatter)
     chatter.active = False
-    log_activity(db, "chatter_deleted", f"{current_user.name} deleted chatter {chatter.name}.", current_user.id)
+    log_activity(db, "chatter_deleted", f"{current_user.name} deleted chatter {chatter.name}.", current_user.id, project_id=chatter.project_id, chatter_id=chatter.id)
     db.commit()
     return {"ok": True}
 
@@ -145,7 +146,7 @@ def list_typing(chatter_id: int, db: Session = Depends(get_db), current_user: Us
     return [TypingUserOut(id=user.id, name=user.name or user.login or user.email) for _, user in rows]
 
 
-@router.post("/{chatter_id}/typing")
+@router.post("/{chatter_id}/typing", dependencies=[Depends(typing_rate_limit_dependency)])
 def update_typing(chatter_id: int, payload: TypingStateUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     chatter = get_or_404(db, Chatter, chatter_id)
     assert_chatter_access(current_user, chatter)
@@ -163,7 +164,7 @@ def update_typing(chatter_id: int, payload: TypingStateUpdate, db: Session = Dep
     return {"ok": True}
 
 
-@router.post("/{chatter_id}/messages", response_model=MessageOut, status_code=201)
+@router.post("/{chatter_id}/messages", response_model=MessageOut, status_code=201, dependencies=[Depends(message_rate_limit_dependency)])
 def create_message(chatter_id: int, payload: MessageCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     from app.models import Attachment
 
@@ -192,7 +193,7 @@ def create_message(chatter_id: int, payload: MessageCreate, db: Session = Depend
         push_category=PUSH_CHATTER_MESSAGE,
         action_url="/frontend/index.html",
     )
-    log_activity(db, "message_sent", f"{current_user.name} sent a message in {chatter.name}.", current_user.id)
+    log_activity(db, "message_sent", f"{current_user.name} sent a message in {chatter.name}.", current_user.id, project_id=chatter.project_id, chatter_id=chatter.id)
     db.commit()
     db.refresh(message)
     return message_out(message, current_user)

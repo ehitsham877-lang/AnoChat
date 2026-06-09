@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.service import get_current_user
@@ -7,6 +8,7 @@ from app.common import get_or_404, read_only_project_member_ids, set_chatter_mem
 from app.database import get_db
 from app.models import ActivityLog, Attachment, Chatter, EmailLog, Project, User
 from app.notifications.service import create_notification
+from app.rate_limit import sensitive_action_rate_limit_dependency
 from app.roles.permissions import assert_project_access, can_access_project, is_admin, require_project_write_access, require_roles, require_write_access
 from app.schemas import ProjectCreate, ProjectOut, ProjectUpdate
 
@@ -25,7 +27,7 @@ def project_out(db: Session, project: Project) -> Project:
     return project
 
 
-@router.post("", response_model=ProjectOut, status_code=201)
+@router.post("", response_model=ProjectOut, status_code=201, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def create_project(payload: ProjectCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     require_roles(current_user, {"admin"})
     require_write_access(current_user)
@@ -48,8 +50,8 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db), curren
     set_chatter_members(db, chatter, list(chatter_member_ids), read_only_member_ids)
     create_notification(db, current_user.id, "Project created", f"{project.name} is ready in your workspace.")
     create_notification(db, current_user.id, "Chatter created", f"{chatter.name} is ready for conversations.")
-    log_activity(db, "project_created", f"{current_user.name} created project {project.name}.", current_user.id)
-    log_activity(db, "chatter_created", f"{current_user.name} created chatter {chatter.name}.", current_user.id)
+    log_activity(db, "project_created", f"{current_user.name} created project {project.name}.", current_user.id, project_id=project.id)
+    log_activity(db, "chatter_created", f"{current_user.name} created chatter {chatter.name}.", current_user.id, project_id=project.id, chatter_id=chatter.id)
     db.commit()
     db.refresh(project)
     return project_out(db, project)
@@ -62,7 +64,37 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user: Us
     return project_out(db, project)
 
 
-@router.put("/{project_id}", response_model=ProjectOut)
+@router.get("/{project_id}/activity")
+def list_project_activity(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = get_or_404(db, Project, project_id)
+    assert_project_access(current_user, project)
+    chatter_ids = [row[0] for row in db.query(Chatter.id).filter(Chatter.project_id == project.id).all()]
+    filters = [ActivityLog.project_id == project.id]
+    if chatter_ids:
+        filters.append(ActivityLog.chatter_id.in_(chatter_ids))
+    rows = (
+        db.query(ActivityLog)
+        .filter(or_(*filters))
+        .order_by(ActivityLog.created_at.desc())
+        .limit(200)
+        .all()
+    )
+    return [
+        {
+            "id": log.id,
+            "activity_type": log.activity_type,
+            "description": log.description,
+            "status": log.status,
+            "project_id": log.project_id,
+            "chatter_id": log.chatter_id,
+            "user_id": log.user_id,
+            "created_at": log.created_at,
+        }
+        for log in rows
+    ]
+
+
+@router.put("/{project_id}", response_model=ProjectOut, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def update_project(project_id: int, payload: ProjectUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     project = get_or_404(db, Project, project_id)
     if not is_admin(current_user):
@@ -80,13 +112,13 @@ def update_project(project_id: int, payload: ProjectUpdate, db: Session = Depend
             member_ids if member_ids is not None else [member.id for member in project.members],
             read_only_member_ids if read_only_member_ids is not None else read_only_project_member_ids(db, project.id),
         )
-    log_activity(db, "project_updated", f"{current_user.name} updated project {project.name}.", current_user.id)
+    log_activity(db, "project_updated", f"{current_user.name} updated project {project.name}.", current_user.id, project_id=project.id)
     db.commit()
     db.refresh(project)
     return project_out(db, project)
 
 
-@router.delete("/{project_id}")
+@router.delete("/{project_id}", dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def delete_project(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     require_roles(current_user, {"admin"})
     project = get_or_404(db, Project, project_id)
@@ -98,6 +130,6 @@ def delete_project(project_id: int, db: Session = Depends(get_db), current_user:
     db.query(EmailLog).filter(EmailLog.project_id == project.id).update({"project_id": None}, synchronize_session=False)
     db.query(ActivityLog).filter(ActivityLog.project_id == project.id).update({"project_id": None}, synchronize_session=False)
     db.delete(project)
-    log_activity(db, "project_deleted", f"{current_user.name} deleted project {project_name}.", current_user.id)
+    log_activity(db, "project_deleted", f"{current_user.name} deleted project {project_name}.", current_user.id, project_id=project.id)
     db.commit()
     return {"ok": True}

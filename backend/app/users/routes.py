@@ -27,6 +27,7 @@ from app.models import (
     message_seen,
 )
 from app.notifications.service import create_notification
+from app.rate_limit import sensitive_action_rate_limit_dependency
 from app.roles.permissions import KNOWN_ROLES, is_admin, require_roles, require_write_access
 from app.schemas import UserCreate, UserOut, UserUpdate
 
@@ -40,7 +41,7 @@ def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_c
     return [current_user]
 
 
-@router.post("", response_model=UserOut, status_code=201)
+@router.post("", response_model=UserOut, status_code=201, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def create_user(payload: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     require_roles(current_user, {"admin"})
     require_write_access(current_user)
@@ -80,7 +81,7 @@ def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = D
     return get_or_404(db, User, user_id)
 
 
-@router.put("/{user_id}", response_model=UserOut)
+@router.put("/{user_id}", response_model=UserOut, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not is_admin(current_user) and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
@@ -118,7 +119,7 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     return user
 
 
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     require_roles(current_user, {"admin"})
     require_write_access(current_user)
@@ -156,7 +157,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
     return {"ok": True}
 
 
-@router.put("/{user_id}/role", response_model=UserOut)
+@router.put("/{user_id}/role", response_model=UserOut, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def set_role(user_id: int, roles: list[str], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     require_roles(current_user, {"admin"})
     require_write_access(current_user)

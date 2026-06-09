@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.database import Base
-from app.models import NotificationPreference, Role, User, WebPushSubscription
+from app.models import EmailLog, NotificationPreference, Role, User, WebPushSubscription
 from app.notifications import service
 from app.notifications.service import PUSH_CHATTER_MESSAGE, create_notification, get_or_create_preferences
 
@@ -44,6 +44,9 @@ def test_default_notification_preferences_are_created(db):
     assert preferences.browser_push_enabled is False
     assert preferences.push_chatter_messages is True
     assert preferences.push_workspace_updates is True
+    assert preferences.email_alerts_enabled is False
+    assert preferences.email_chatter_messages is True
+    assert preferences.email_workspace_updates is True
 
 
 def test_push_sends_only_when_user_enabled_preferences(db, monkeypatch):
@@ -78,3 +81,63 @@ def test_push_respects_disabled_chatter_preference(db, monkeypatch):
     create_notification(db, user.id, "New message", "Hello", push_category=PUSH_CHATTER_MESSAGE)
 
     assert sent == []
+
+
+def test_email_alert_is_skipped_when_preference_disabled(db):
+    user = add_user(db)
+
+    create_notification(db, user.id, "New message", "Hello", push_category=PUSH_CHATTER_MESSAGE)
+
+    assert db.query(EmailLog).count() == 0
+
+
+def test_email_alert_logs_when_smtp_is_not_configured(db):
+    user = add_user(db)
+    db.add(NotificationPreference(user_id=user.id, email_alerts_enabled=True, email_chatter_messages=True))
+    db.commit()
+
+    create_notification(db, user.id, "New message", "Hello", push_category=PUSH_CHATTER_MESSAGE)
+
+    log = db.query(EmailLog).one()
+    assert log.email_to == user.email
+    assert log.status == "skipped_smtp_not_configured"
+
+
+def test_email_alert_sends_when_configured(db, monkeypatch):
+    user = add_user(db)
+    db.add(NotificationPreference(user_id=user.id, email_alerts_enabled=True, email_chatter_messages=True))
+    db.commit()
+    sent = []
+    settings = service.get_settings()
+    monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")
+    monkeypatch.setattr(settings, "smtp_port", 587)
+    monkeypatch.setattr(settings, "smtp_from_email", "alerts@example.com")
+    monkeypatch.setattr(settings, "smtp_username", "")
+    monkeypatch.setattr(settings, "smtp_password", "")
+    monkeypatch.setattr(settings, "smtp_use_tls", True)
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout):
+            self.host = host
+            self.port = port
+            self.timeout = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def starttls(self):
+            sent.append(("tls", self.host, self.port))
+
+        def send_message(self, message):
+            sent.append(("message", message["To"], message["Subject"]))
+
+    monkeypatch.setattr(service.smtplib, "SMTP", FakeSMTP)
+
+    create_notification(db, user.id, "New message", "Hello", push_category=PUSH_CHATTER_MESSAGE)
+
+    log = db.query(EmailLog).one()
+    assert log.status == "sent"
+    assert ("message", user.email, "New message") in sent

@@ -248,6 +248,25 @@ class SignupRequest(TimestampMixin, Base):
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class AccessRequest(TimestampMixin, Base):
+    __tablename__ = "access_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    resource_type: Mapped[str] = mapped_column(String(32), index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    chatter_id: Mapped[int | None] = mapped_column(ForeignKey("chatters.id", ondelete="CASCADE"), index=True)
+    message: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    processed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    requester: Mapped[User] = relationship(foreign_keys=[requester_id], lazy="selectin")
+    processed_by: Mapped[User | None] = relationship(foreign_keys=[processed_by_id], lazy="selectin")
+    project: Mapped[Project | None] = relationship(lazy="selectin")
+    chatter: Mapped[Chatter | None] = relationship(lazy="selectin")
+
+
 class Notification(TimestampMixin, Base):
     __tablename__ = "notifications"
 
@@ -267,6 +286,9 @@ class NotificationPreference(TimestampMixin, Base):
     browser_push_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     push_chatter_messages: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     push_workspace_updates: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    email_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_chatter_messages: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    email_workspace_updates: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
 class WebPushSubscription(TimestampMixin, Base):

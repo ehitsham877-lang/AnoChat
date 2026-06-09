@@ -10,13 +10,14 @@ from app.database import get_db
 from app.models import Message, User
 from app.messages.presenter import can_edit_message, message_out
 from app.messages.sanitize import sanitize_chatter_message
+from app.rate_limit import sensitive_action_rate_limit_dependency
 from app.roles.permissions import assert_chatter_access, is_admin, require_chatter_write_access
 from app.schemas import MessageOut, MessageUpdate
 
 router = APIRouter(prefix="/api/messages", tags=["messages"])
 
 
-@router.put("/{message_id}", response_model=MessageOut)
+@router.put("/{message_id}", response_model=MessageOut, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def update_message(message_id: int, payload: MessageUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     message = get_or_404(db, Message, message_id)
     assert_chatter_access(current_user, message.chatter)
@@ -38,13 +39,13 @@ def update_message(message_id: int, payload: MessageUpdate, db: Session = Depend
         raise HTTPException(status_code=403, detail="Only sender or admin can edit messages")
     for key, value in data.items():
         setattr(message, key, value)
-    log_activity(db, "message_updated", f"{current_user.name} updated a message in {message.chatter.name}.", current_user.id)
+    log_activity(db, "message_updated", f"{current_user.name} updated a message in {message.chatter.name}.", current_user.id, project_id=message.chatter.project_id, chatter_id=message.chatter_id)
     db.commit()
     db.refresh(message)
     return message_out(message, current_user)
 
 
-@router.delete("/{message_id}", response_model=MessageOut)
+@router.delete("/{message_id}", response_model=MessageOut, dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def delete_message(message_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     message = get_or_404(db, Message, message_id)
     assert_chatter_access(current_user, message.chatter)
@@ -55,7 +56,7 @@ def delete_message(message_id: int, db: Session = Depends(get_db), current_user:
     message.is_deleted = True
     message.deleted_by_id = current_user.id
     message.deleted_at = datetime.now(timezone.utc)
-    log_activity(db, "message_deleted", f"{current_user.name} deleted a message in {chatter_name}.", current_user.id)
+    log_activity(db, "message_deleted", f"{current_user.name} deleted a message in {chatter_name}.", current_user.id, project_id=message.chatter.project_id, chatter_id=message.chatter_id)
     db.commit()
     db.refresh(message)
     return message_out(message, current_user)

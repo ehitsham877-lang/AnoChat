@@ -1,9 +1,11 @@
 import json
+import smtplib
+from email.message import EmailMessage
 
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import Notification, NotificationPreference, WebPushSubscription
+from app.models import EmailLog, Notification, NotificationPreference, User, WebPushSubscription
 
 try:
     from pywebpush import WebPushException, webpush
@@ -37,6 +39,7 @@ def create_notification(
     db.add(notification)
     db.flush()
     send_push_notification(db, user_id, title, body, push_category=push_category, action_url=action_url)
+    send_email_alert(db, user_id, title, body, category=push_category, action_url=action_url)
     return notification
 
 
@@ -59,6 +62,11 @@ def notify_users(
 def push_configured() -> bool:
     settings = get_settings()
     return bool(webpush and settings.vapid_public_key and settings.vapid_private_key)
+
+
+def email_configured() -> bool:
+    settings = get_settings()
+    return bool(settings.smtp_host and settings.smtp_from_email)
 
 
 def send_push_notification(
@@ -112,3 +120,67 @@ def send_push_notification(
                 subscription.active = False
         except Exception:
             continue
+
+
+def send_email_alert(
+    db: Session,
+    user_id: int,
+    title: str,
+    body: str | None,
+    *,
+    category: str,
+    action_url: str,
+) -> None:
+    preferences = get_or_create_preferences(db, user_id)
+    if not preferences.email_alerts_enabled:
+        return
+    if category == PUSH_CHATTER_MESSAGE and not preferences.email_chatter_messages:
+        return
+    if category == PUSH_WORKSPACE_UPDATE and not preferences.email_workspace_updates:
+        return
+    user = db.get(User, user_id)
+    if not user or not user.active or not user.email:
+        return
+
+    settings = get_settings()
+    sender = settings.smtp_from_email or settings.smtp_username
+    log = EmailLog(
+        user_id=user.id,
+        email_from=sender or None,
+        email_to=user.email,
+        subject=title,
+        body_excerpt=(body or "")[:2000],
+        status="skipped",
+    )
+    db.add(log)
+    db.flush()
+
+    if not email_configured():
+        log.status = "skipped_smtp_not_configured"
+        return
+
+    message = EmailMessage()
+    message["Subject"] = title
+    message["From"] = sender
+    message["To"] = user.email
+    message.set_content(
+        "\n".join([
+            body or title,
+            "",
+            f"Open AnoChat: {action_url}",
+            "",
+            "You are receiving this because email alerts are enabled for your AnoChat account.",
+        ])
+    )
+
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=5) as smtp:
+            if settings.smtp_use_tls:
+                smtp.starttls()
+            if settings.smtp_username:
+                smtp.login(settings.smtp_username, settings.smtp_password)
+            smtp.send_message(message)
+        log.status = "sent"
+    except Exception as exc:
+        log.status = "failed"
+        log.body_excerpt = f"{(body or '')[:1800]}\n\nEmail error: {str(exc)[:180]}"

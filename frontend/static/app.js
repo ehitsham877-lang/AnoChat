@@ -22,6 +22,11 @@
     chatters: [],
     messages: [],
     notifications: [],
+    notificationHistory: [],
+    notificationHistoryFilter: "all",
+    accessRequests: [],
+    accessRequestOptions: { projects: [], chatters: [] },
+    accessRequestResourceType: "project",
     notificationsOpen: false,
     pushConfig: null,
     notificationPreferences: null,
@@ -29,10 +34,13 @@
     presenceOpen: false,
     presenceSyncTimer: null,
     messageSyncTimer: null,
+    presenceRefreshing: false,
     refreshingMessages: false,
     lastMessageSignature: "",
     files: [],
     activityLogs: [],
+    projectActivity: {},
+    projectActivityLoading: {},
     stats: null,
     activeChatter: storedActiveChatterId(),
     chatterInfoOpen: false,
@@ -55,7 +63,22 @@
     chatMessageSearch: "",
     chatHeaderMenuOpen: false,
     renderCycle: 0,
-    filters: { projectSearch: "", projectStatus: "all", projectPriority: "all", logSearch: "", logType: "all", userSearch: "", chatterSearch: "", chatterFilter: "all" },
+    filters: {
+      projectSearch: "",
+      projectStatus: "all",
+      projectPriority: "all",
+      logSearch: "",
+      logType: "all",
+      logStatus: "all",
+      logUser: "",
+      logProject: "",
+      logChatter: "",
+      logDateFrom: "",
+      logDateTo: "",
+      userSearch: "",
+      chatterSearch: "",
+      chatterFilter: "all",
+    },
     modal: null,
     toasts: [],
     attachmentPreviews: {},
@@ -621,8 +644,6 @@
       clearActiveChatter();
       localStorage.setItem("anochat_tab", "dashboard");
       broadcastPresenceChange(state.user);
-      startPresenceSync();
-      startMessageSync();
       state.loading = false;
       toast("Signed in.", "success");
       render();
@@ -639,6 +660,8 @@
   async function loadWorkspaceAfterLogin() {
     try {
       await Promise.all([loadNotifications(), loadPushSettings(), loadTab(state.tab)]);
+      startPresenceSync();
+      startMessageSync();
     } catch (err) {
       toast(err.message || "Workspace data is still loading. Please refresh if it does not appear.", "error");
     } finally {
@@ -658,9 +681,9 @@
       apiClient.clearToken();
       clearActiveChatter();
       Object.assign(state, {
-        user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
+        user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
-        activityLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+        activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
         chatInfoExpanded: { members: false, images: false, documents: false },
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
@@ -743,12 +766,13 @@
 
   function startPresenceSync() {
     stopPresenceSync();
-    state.presenceSyncTimer = window.setInterval(() => refreshPresenceData(true), 4000);
+    state.presenceSyncTimer = window.setInterval(() => refreshPresenceData(true), 15000);
   }
 
   function stopPresenceSync() {
     if (state.presenceSyncTimer) window.clearInterval(state.presenceSyncTimer);
     state.presenceSyncTimer = null;
+    state.presenceRefreshing = false;
   }
 
   function startMessageSync() {
@@ -782,7 +806,7 @@
   }
 
   async function refreshActiveChatterMessages(silent) {
-    if (!apiClient.token() || !state.user || state.tab !== "chatters" || !state.activeChatter || state.refreshingMessages || state.sendingMessage) return;
+    if (document.hidden || !apiClient.token() || !state.user || state.tab !== "chatters" || !state.activeChatter || state.refreshingMessages || state.sendingMessage) return;
     const chatterId = state.activeChatter;
     const previousBadgeSignature = sidebarBadgeSignature();
     state.refreshingMessages = true;
@@ -821,7 +845,8 @@
   }
 
   async function refreshPresenceData(silent) {
-    if (!apiClient.token() || !state.user) return;
+    if (document.hidden || !apiClient.token() || !state.user || state.presenceRefreshing) return;
+    state.presenceRefreshing = true;
     try {
       const [me, users, chatters, notifications] = await Promise.all([
         apiClient.get("/api/auth/me"),
@@ -846,6 +871,8 @@
       }
     } catch (err) {
       if (!silent) toast(err.message || "Could not refresh presence.", "error");
+    } finally {
+      state.presenceRefreshing = false;
     }
   }
 
@@ -861,10 +888,10 @@
       state.bootstrapping = false;
       state.loading = true;
       render();
-      startPresenceSync();
-      startMessageSync();
       try {
         await Promise.all([loadNotifications(), loadPushSettings(), loadTab(state.tab)]);
+        startPresenceSync();
+        startMessageSync();
       } catch (err) {
         const message = err.message || "Workspace data is still loading. Please refresh if it does not appear.";
         state.error = message;
@@ -876,9 +903,9 @@
       apiClient.clearToken();
       resetChatterAudioState();
       Object.assign(state, {
-        user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
+        user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
-        activityLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+        activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
       });
@@ -894,12 +921,25 @@
     if (tab === "dashboard") await Promise.all([loadUsers(), loadProjects(), loadChatters({ listOnly: true }), loadMonitoringSoft()]);
     if (tab === "projects") await Promise.all([loadUsers(), loadProjects()]);
     if (tab === "chatters") await Promise.all([loadUsers(), loadProjects(), loadChatters(), loadFiles()]);
-    if (tab === "monitoring") await Promise.all([loadMonitoring(), loadChatters({ listOnly: true })]);
+    if (tab === "monitoring") await Promise.all([loadMonitoring({ filtered: true }), loadChatters({ listOnly: true })]);
     if (tab === "users") await loadUsers();
+    if (tab === "settings") await Promise.all([loadPushSettings(), loadAccessRequests(), loadNotificationHistory()]);
   }
 
   async function loadUsers() { state.users = await apiClient.get("/api/users"); }
   async function loadNotifications() { state.notifications = await apiClient.get("/api/notifications"); }
+  async function loadNotificationHistory() {
+    const status = state.notificationHistoryFilter || "all";
+    state.notificationHistory = await apiClient.get(`/api/notifications/history?status=${encodeURIComponent(status)}&limit=100`);
+  }
+  async function loadAccessRequests() {
+    const [requests, options] = await Promise.all([
+      apiClient.get("/api/access-requests"),
+      apiClient.get("/api/access-requests/options"),
+    ]);
+    state.accessRequests = requests;
+    state.accessRequestOptions = options;
+  }
   async function loadTypingUsers(chatterId) {
     if (!chatterId) return [];
     try {
@@ -920,13 +960,28 @@
       state.pushConfig = { enabled: false, public_key: null };
       state.notificationPreferences = state.notificationPreferences || {
         browser_push_enabled: false,
-        chatter_messages_enabled: true,
-        workspace_updates_enabled: true,
-        mentions_enabled: true,
+        push_chatter_messages: true,
+        push_workspace_updates: true,
+        email_alerts_enabled: false,
+        email_chatter_messages: true,
+        email_workspace_updates: true,
       };
     }
   }
   async function loadProjects() { state.projects = await apiClient.get("/api/projects"); }
+  async function loadProjectActivity(projectId) {
+    if (!projectId) return [];
+    state.projectActivityLoading[projectId] = true;
+    render();
+    try {
+      const rows = await apiClient.get(`/api/projects/${projectId}/activity`);
+      state.projectActivity[projectId] = rows;
+      return rows;
+    } finally {
+      state.projectActivityLoading[projectId] = false;
+      render();
+    }
+  }
   async function loadFiles() { state.files = await apiClient.get("/api/attachments"); }
   async function loadChatters(options = {}) {
     const loadToken = options.listOnly ? null : ++state.chatterLoadToken;
@@ -960,10 +1015,10 @@
     ));
   }
   async function loadMonitoringSoft() { if (canManage()) await loadMonitoring(); }
-  async function loadMonitoring() {
+  async function loadMonitoring(options = {}) {
     if (!canManage()) return;
     state.stats = await apiClient.get("/api/monitoring/stats");
-    state.activityLogs = await apiClient.get("/api/activity-logs");
+    state.activityLogs = await apiClient.get(options.filtered ? `/api/activity-logs?${auditQueryString()}` : "/api/activity-logs");
   }
 
   function dashboardView() {
@@ -1045,8 +1100,15 @@
             ]),
           ]),
         ]),
+        h("article", { class: "settings-card notification-history-card" }, [
+          notificationHistoryPanel(),
+        ]),
         h("article", { class: "settings-card push-settings-card" }, [
           pushSettingsPanel(true),
+        ]),
+        h("article", { class: "settings-card access-request-card" }, [
+          settingsCardHead(isAdmin() ? "Access Requests" : "Request Access", isAdmin() ? "Review workspace access requests." : "Ask an admin for project or chatter access.", "ShieldCheck"),
+          accessRequestsPanel(),
         ]),
         h("article", { class: "settings-card account-settings-card" }, [
           settingsCardHead("Account", "Your signed-in workspace profile.", "UserRound"),
@@ -1076,18 +1138,55 @@
     ]);
   }
 
-  function notificationPanel() {
-    const items = state.notifications.slice(0, 6);
+  function notificationHistoryPanel() {
+    const items = state.notificationHistory || [];
+    const unreadCount = state.notifications.filter((item) => !item.is_read).length;
+    const filters = [["all", "All"], ["unread", "Unread"], ["read", "Read"]];
     return h("div", { class: "settings-notification-panel" }, [
       h("div", { class: "settings-notification-head" }, [
-        h("strong", {}, "Recent notifications"),
-        h("button", { class: "link-button", onclick: markNotificationsRead }, "Mark all read"),
+        h("span", {}, [
+          h("strong", {}, "Notification history"),
+          h("small", {}, `${unreadCount} unread alert${unreadCount === 1 ? "" : "s"}`),
+        ]),
+        h("span", { class: "notification-history-actions" }, [
+          h("button", { type: "button", class: "link-button", onclick: refreshNotificationHistory }, "Refresh"),
+          h("button", { type: "button", class: "link-button", onclick: markNotificationsRead }, "Mark all read"),
+        ]),
       ]),
+      h("div", { class: "notification-filter-chips", role: "tablist", "aria-label": "Notification filters" }, filters.map(([value, label]) => h("button", {
+        type: "button",
+        class: state.notificationHistoryFilter === value ? "active" : "",
+        role: "tab",
+        "aria-selected": state.notificationHistoryFilter === value ? "true" : "false",
+        onclick: () => setNotificationHistoryFilter(value),
+      }, label))),
       items.length ? h("div", { class: "settings-notification-list" }, items.map((item) => h("div", { class: item.is_read ? "notification-item" : "notification-item unread" }, [
         h("span", { class: "notification-icon" }, [icon(notificationIcon(item), 16)]),
-        h("span", {}, [h("strong", {}, item.title || "Notification"), h("small", {}, item.body || ""), h("time", {}, formatDate(item.created_at))]),
+        h("span", { class: "notification-copy" }, [
+          h("strong", {}, item.title || "Notification"),
+          h("small", {}, item.body || ""),
+          h("time", {}, formatDate(item.created_at)),
+        ]),
+        !item.is_read ? h("button", { type: "button", class: "notification-read-btn", onclick: () => markNotificationRead(item.id) }, "Mark read") : h("span", { class: "notification-read-state" }, "Read"),
       ]))) : h("div", { class: "notification-empty" }, [icon("Bell", 20), h("strong", {}, "No notifications"), h("small", {}, "You're all caught up.")]),
     ]);
+  }
+
+  async function setNotificationHistoryFilter(value) {
+    state.notificationHistoryFilter = value || "all";
+    render();
+    await refreshNotificationHistory();
+  }
+
+  async function refreshNotificationHistory(event) {
+    if (event) event.preventDefault();
+    try {
+      await Promise.all([loadNotifications(), loadNotificationHistory()]);
+    } catch (err) {
+      toast(err.message || "Could not load notification history.", "error");
+    } finally {
+      render();
+    }
   }
 
   function confirmLogout() {
@@ -1160,6 +1259,7 @@
       ]),
       h("div", { class: "progress-track" }, h("span", { style: `width:${Math.max(0, Math.min(100, project.completion_rate || 0))}%` })),
       h("div", { class: "card-actions" }, [
+        h("button", { class: "btn btn-soft", onclick: () => openProjectDetails(project) }, [icon("Eye"), "Details"]),
         canManage() ? h("button", { class: "btn btn-soft", onclick: () => openModal("project", project) }, [icon("Edit"), "Edit"]) : null,
         canManage() ? h("button", { class: "btn btn-danger", onclick: () => confirmAction("Delete project?", "This will permanently remove the project record.", () => deleteProject(project.id)) }, [icon("Trash"), "Delete"]) : null,
       ]),
@@ -1699,6 +1799,76 @@
     ]);
   }
 
+  function accessRequestsPanel() {
+    return isAdmin() ? adminAccessRequestsPanel() : requesterAccessPanel();
+  }
+
+  function adminAccessRequestsPanel() {
+    const pending = state.accessRequests.filter((request) => request.status === "pending");
+    const recent = pending.length ? pending : state.accessRequests.slice(0, 5);
+    return h("div", { class: "access-request-panel" }, [
+      recent.length ? h("div", { class: "access-request-list" }, recent.map(accessRequestReviewRow)) : h("div", { class: "access-request-empty" }, [
+        icon("ShieldCheck", 22),
+        h("strong", {}, "No access requests"),
+        h("small", {}, "Pending project and chatter requests will appear here."),
+      ]),
+    ]);
+  }
+
+  function accessRequestReviewRow(request) {
+    const processed = request.status !== "pending";
+    return h("div", { class: `access-request-row status-${request.status}` }, [
+      h("span", { class: "access-request-avatar" }, initials(request.requester_name || "User")),
+      h("span", { class: "access-request-copy" }, [
+        h("strong", {}, request.requester_name || "Unknown user"),
+        h("small", {}, `${cap(request.resource_type)} access: ${request.resource_name}`),
+        request.message ? h("small", {}, request.message) : null,
+      ]),
+      h("span", { class: "access-request-status" }, cap(request.status)),
+      !processed ? h("span", { class: "access-request-actions" }, [
+        h("button", { type: "button", class: "btn btn-soft", onclick: () => rejectAccessRequest(request.id) }, "Reject"),
+        h("button", { type: "button", class: "btn btn-primary", onclick: () => approveAccessRequest(request.id) }, [icon("Check", 15), "Approve"]),
+      ]) : null,
+    ]);
+  }
+
+  function requesterAccessPanel() {
+    const type = state.accessRequestResourceType || "project";
+    const options = type === "chatter" ? (state.accessRequestOptions.chatters || []) : (state.accessRequestOptions.projects || []);
+    return h("div", { class: "access-request-panel" }, [
+      h("form", { class: "access-request-form", onsubmit: createAccessRequest }, [
+        field("Access type", inputWrap("ChevronsUpDown", dropdown({
+          name: "resource_type",
+          value: type,
+          items: [{ value: "project", label: "Project" }, { value: "chatter", label: "Chatter" }],
+          onChange: (value) => { state.accessRequestResourceType = value || "project"; render(); },
+        }))),
+        field(type === "chatter" ? "Chatter" : "Project", inputWrap(type === "chatter" ? "MessagesSquare" : "FolderKanban", dropdown({
+          name: "resource_id",
+          value: "",
+          items: [{ value: "", label: options.length ? "Choose one" : "No available items" }].concat(options.map((item) => ({ value: item.id, label: item.name }))),
+        }))),
+        h("label", { class: "field form-span" }, [
+          h("span", {}, "Note"),
+          h("textarea", { name: "message", rows: "3", placeholder: "Tell the admin why you need access" }),
+        ]),
+        h("button", { type: "submit", class: "btn btn-primary form-span", disabled: !options.length }, [icon("Send", 16), "Send request"]),
+      ]),
+      ownAccessRequestsPanel(),
+    ]);
+  }
+
+  function ownAccessRequestsPanel() {
+    const requests = state.accessRequests.slice(0, 5);
+    return h("div", { class: "access-history" }, [
+      h("strong", {}, "Recent requests"),
+      requests.length ? h("div", { class: "access-history-list" }, requests.map((request) => h("div", { class: `access-history-item status-${request.status}` }, [
+        h("span", {}, [h("strong", {}, request.resource_name), h("small", {}, `${cap(request.resource_type)} - ${formatDate(request.created_at)}`)]),
+        h("span", {}, cap(request.status)),
+      ]))) : h("small", {}, "No requests sent yet."),
+    ]);
+  }
+
   function waveformBars(progress) {
     const bars = [14, 22, 11, 28, 18, 34, 24, 13, 30, 20, 16, 26, 12, 23, 18, 30, 14, 22, 10, 18];
     const played = Math.round(Math.max(0, Math.min(1, progress || 0)) * bars.length);
@@ -2202,27 +2372,138 @@
       h("section", { class: "toolbar card activity-toolbar" }, [
         searchBox("Search activity logs", "logSearch"),
         filterSelect("logType", ["all", "project", "chatter", "message", "user", "login", "attachment"], "Type"),
+        filterSelect("logStatus", ["all", "success", "failed", "error"], "Status"),
+        auditEntitySelect("logUser", "User", state.users.map((user) => ({ value: user.id, label: user.name || user.email }))),
+        auditEntitySelect("logProject", "Project", state.projects.map((project) => ({ value: project.id, label: project.name }))),
+        auditEntitySelect("logChatter", "Chatter", state.chatters.map((chatter) => ({ value: chatter.id, label: chatter.name }))),
+        auditDateField("logDateFrom", "From"),
+        auditDateField("logDateTo", "To"),
+        h("div", { class: "audit-toolbar-actions" }, [
+          h("button", { type: "button", class: "btn btn-soft", onclick: applyAuditFilters }, [icon("Search", 16), "Apply"]),
+          h("button", { type: "button", class: "btn btn-outline", onclick: resetAuditFilters }, "Reset"),
+          h("button", { type: "button", class: "btn btn-primary", onclick: exportAuditLogs }, [icon("Download", 16), "Export CSV"]),
+        ]),
       ]),
-      h("article", { class: "card monitoring-activity-card" }, [cardHeader("Activity Log", "Audit events and workspace activity"), monitoringActivityList(logs)]),
+      h("article", { class: "card monitoring-activity-card" }, [cardHeader("Activity Log", `${logs.length} audit event${logs.length === 1 ? "" : "s"} shown`), monitoringActivityList(logs)]),
     ]);
   }
 
   function filteredLogs() {
     const q = String(state.filters.logSearch || "").trim().toLowerCase();
     const type = state.filters.logType;
+    const status = state.filters.logStatus;
+    const userId = Number(state.filters.logUser || 0);
+    const projectId = Number(state.filters.logProject || 0);
+    const chatterId = Number(state.filters.logChatter || 0);
+    const start = state.filters.logDateFrom ? new Date(`${state.filters.logDateFrom}T00:00:00`).getTime() : null;
+    const end = state.filters.logDateTo ? new Date(`${state.filters.logDateTo}T23:59:59`).getTime() : null;
     return state.activityLogs.filter((log) => {
+      const created = new Date(log.created_at).getTime();
       const searchText = [
         log.id,
         log.activity_type,
         cleanLogType(log.activity_type),
         log.description,
         log.status,
+        log.user_name,
+        log.project_name,
+        log.chatter_name,
         formatDate(log.created_at),
       ].join(" ").toLowerCase();
       const matchesSearch = !q || searchText.indexOf(q) >= 0;
       const matchesType = type === "all" || logTypeClass(log.activity_type) === type;
-      return matchesSearch && matchesType;
+      const matchesStatus = status === "all" || String(log.status || "").toLowerCase() === status;
+      const matchesUser = !userId || Number(log.user_id) === userId;
+      const matchesProject = !projectId || Number(log.project_id) === projectId;
+      const matchesChatter = !chatterId || Number(log.chatter_id) === chatterId;
+      const matchesStart = !start || created >= start;
+      const matchesEnd = !end || created <= end;
+      return matchesSearch && matchesType && matchesStatus && matchesUser && matchesProject && matchesChatter && matchesStart && matchesEnd;
     });
+  }
+
+  function auditEntitySelect(key, label, items) {
+    return h("label", { class: "filter-select audit-filter-select" }, [
+      icon("ChevronsUpDown", 16),
+      h("span", {}, label),
+      dropdown({
+        value: state.filters[key],
+        items: [{ value: "", label: `All ${label.toLowerCase()}s` }].concat(items),
+        onChange: (value) => { state.filters[key] = value; render(); },
+      }),
+    ]);
+  }
+
+  function auditDateField(key, label) {
+    return h("label", { class: "audit-date-field" }, [
+      h("span", {}, label),
+      h("input", {
+        type: "date",
+        value: state.filters[key] || "",
+        onchange: (event) => { state.filters[key] = event.target.value; render(); },
+      }),
+    ]);
+  }
+
+  async function applyAuditFilters(event) {
+    if (event) event.preventDefault();
+    await run(async () => {
+      state.activityLogs = await apiClient.get(`/api/activity-logs?${auditQueryString()}`);
+    });
+  }
+
+  function resetAuditFilters(event) {
+    if (event) event.preventDefault();
+    Object.assign(state.filters, {
+      logSearch: "",
+      logType: "all",
+      logStatus: "all",
+      logUser: "",
+      logProject: "",
+      logChatter: "",
+      logDateFrom: "",
+      logDateTo: "",
+    });
+    applyAuditFilters();
+  }
+
+  function auditQueryString() {
+    const params = new URLSearchParams();
+    const map = {
+      q: state.filters.logSearch,
+      type: state.filters.logType || "all",
+      status: state.filters.logStatus || "all",
+      user_id: state.filters.logUser,
+      project_id: state.filters.logProject,
+      chatter_id: state.filters.logChatter,
+      date_from: state.filters.logDateFrom,
+      date_to: state.filters.logDateTo,
+      limit: "500",
+    };
+    Object.entries(map).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && String(value).trim() !== "" && !(["type", "status"].includes(key) && value === "all")) {
+        params.set(key, String(value));
+      }
+    });
+    return params.toString();
+  }
+
+  async function exportAuditLogs(event) {
+    if (event) event.preventDefault();
+    try {
+      const blob = await apiClient.get(`/api/activity-logs/export?${auditQueryString()}`);
+      const url = URL.createObjectURL(blob);
+      const link = h("a", { href: url, download: `anochat-audit-logs-${new Date().toISOString().slice(0, 10)}.csv` });
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast("Audit logs exported.", "success");
+    } catch (err) {
+      toast(err.message || "Could not export audit logs.", "error");
+    } finally {
+      render();
+    }
   }
 
   function activityList(items) {
@@ -2349,6 +2630,7 @@
       h("section", { class: modalClass(modal), onclick: (event) => event.stopPropagation() }, [
         h("div", { class: "modal-head" }, [h("h2", {}, modalTitle(modal)), h("button", { class: "icon-btn", onclick: closeModal }, [icon("X")])]),
         modal.type === "project" ? projectForm(modal.data) : null,
+        modal.type === "projectDetails" ? projectDetailsBody(modal.project) : null,
         modal.type === "chatter" ? chatterForm(modal.data) : null,
         modal.type === "user" ? userForm() : null,
         modal.type === "role" ? roleForm(modal.data) : null,
@@ -2363,6 +2645,7 @@
 
   function modalClass(modal) {
     if (modal.type === "chatterDetails") return "modal chatter-detail-modal";
+    if (modal.type === "projectDetails") return "modal project-detail-modal";
     if (modal.type === "messageInfo") return "modal message-info-modal";
     if (modal.type === "imagePreview") return "modal image-preview-modal";
     return "modal";
@@ -2370,6 +2653,7 @@
 
   function modalTitle(modal) {
     if (modal.type === "project") return modal.data ? "Edit Project" : "Create Project";
+    if (modal.type === "projectDetails") return modal.project?.name || "Project Details";
     if (modal.type === "chatter") return modal.data ? "Edit Chatter" : "Create Chatter";
     if (modal.type === "user") return "Create User";
     if (modal.type === "role") return "Edit User";
@@ -2383,6 +2667,20 @@
   function openModal(type, data) {
     state.modal = { type, data: data || null };
     render();
+  }
+
+  async function openProjectDetails(project) {
+    state.modal = { type: "projectDetails", project };
+    render();
+    try {
+      await Promise.all([
+        loadProjectActivity(project.id),
+        loadChatters({ listOnly: true }),
+        loadFiles(),
+      ]);
+    } catch (err) {
+      toast(err.message || "Could not load project activity.", "error");
+    }
   }
 
   function closeModal() {
@@ -2493,6 +2791,24 @@
         h("input", { type: "checkbox", checked: !!prefs.push_workspace_updates, onchange: (event) => saveNotificationPreference("push_workspace_updates", event.target.checked) }),
         h("span", {}, [h("strong", {}, "Workspace updates"), h("small", {}, "Notify me about important project and account updates.")]),
       ]),
+      h("div", { class: "email-alert-panel" }, [
+        h("div", { class: "account-settings-head" }, [
+          h("span", {}, [icon("Mail", 16)]),
+          h("div", {}, [h("strong", {}, "Email alerts"), h("small", {}, "Send important alerts to your account email when SMTP is configured.")]),
+        ]),
+        h("label", { class: "check-row" }, [
+          h("input", { type: "checkbox", checked: !!prefs.email_alerts_enabled, onchange: (event) => saveNotificationPreference("email_alerts_enabled", event.target.checked) }),
+          h("span", {}, [h("strong", {}, "Enable email alerts"), h("small", {}, state.user?.email || "Your account email will receive alerts.")]),
+        ]),
+        h("label", { class: "check-row" }, [
+          h("input", { type: "checkbox", checked: !!prefs.email_chatter_messages, disabled: !prefs.email_alerts_enabled, onchange: (event) => saveNotificationPreference("email_chatter_messages", event.target.checked) }),
+          h("span", {}, [h("strong", {}, "Chatter messages"), h("small", {}, "Email me for new chatter messages and mentions.")]),
+        ]),
+        h("label", { class: "check-row" }, [
+          h("input", { type: "checkbox", checked: !!prefs.email_workspace_updates, disabled: !prefs.email_alerts_enabled, onchange: (event) => saveNotificationPreference("email_workspace_updates", event.target.checked) }),
+          h("span", {}, [h("strong", {}, "Workspace updates"), h("small", {}, "Email me for project assignments, status changes, files, and access decisions.")]),
+        ]),
+      ]),
     ]);
   }
 
@@ -2584,6 +2900,81 @@
 
   function detailEmpty(text) {
     return h("div", { class: "detail-empty" }, [icon("Paperclip", 16), h("span", {}, text)]);
+  }
+
+  function projectDetailsBody(project) {
+    const freshProject = state.projects.find((item) => sameId(item.id, project?.id)) || project || {};
+    const members = freshProject.members || [];
+    const projectChatters = state.chatters.filter((chatter) => sameId(chatter.project_id, freshProject.id));
+    const projectFiles = state.files.filter((file) => sameId(file.project_id, freshProject.id) || projectChatters.some((chatter) => sameId(chatter.id, file.chatter_id)));
+    const logs = state.projectActivity[freshProject.id] || [];
+    const loading = !!state.projectActivityLoading[freshProject.id];
+    return h("div", { class: "project-detail-body" }, [
+      h("section", { class: "project-detail-hero" }, [
+        h("span", { class: "project-detail-avatar" }, initials(freshProject.name || "Project")),
+        h("div", {}, [
+          h("h3", {}, freshProject.name || "Project"),
+          h("p", {}, freshProject.description || "No description added."),
+          h("div", { class: "badge-row" }, [badge(freshProject.status || "active"), badge(freshProject.priority || "normal", "priority")]),
+        ]),
+      ]),
+      h("section", { class: "project-detail-stats" }, [
+        projectDetailStat("Manager", userName(freshProject.manager_id) || "Unassigned", "UserRound"),
+        projectDetailStat("Customer", projectCustomerNames(freshProject), "Users"),
+        projectDetailStat("Deadline", freshProject.deadline || "No deadline", "Calendar"),
+        projectDetailStat("Progress", `${Math.round(freshProject.completion_rate || 0)}%`, "Activity"),
+      ]),
+      h("section", { class: "project-detail-section" }, [
+        h("div", { class: "project-detail-section-head" }, [h("h4", {}, "Assigned members"), h("span", {}, `${members.length}`)]),
+        members.length ? h("div", { class: "project-member-grid" }, members.map((member) => h("div", { class: "project-member-chip" }, [
+          h("span", { class: "member-mini-avatar" }, initials(member.name || member.email)),
+          h("span", {}, [h("strong", {}, member.name || member.email), h("small", {}, displayRoles(member).join(", ") || "Member")]),
+        ]))) : detailEmpty("No members assigned."),
+      ]),
+      h("section", { class: "project-detail-section" }, [
+        h("div", { class: "project-detail-section-head" }, [h("h4", {}, "Linked chatters"), h("span", {}, `${projectChatters.length}`)]),
+        projectChatters.length ? h("div", { class: "project-linked-list" }, projectChatters.map((chatter) => h("button", {
+          type: "button",
+          onclick: () => { closeModal(); switchTab("chatters").then(() => selectChatter(chatter.id)); },
+        }, [
+          h("span", { class: "member-mini-avatar" }, initials(chatter.name)),
+          h("span", {}, [h("strong", {}, chatter.name), h("small", {}, chatter.last_message_preview || "Open conversation")]),
+        ]))) : detailEmpty("No linked chatters."),
+      ]),
+      h("section", { class: "project-detail-section" }, [
+        h("div", { class: "project-detail-section-head" }, [h("h4", {}, "Recent files"), h("span", {}, `${projectFiles.length}`)]),
+        projectFiles.length ? h("div", { class: "project-file-list" }, projectFiles.slice(0, 4).map(detailFile)) : detailEmpty("No files shared yet."),
+      ]),
+      h("section", { class: "project-detail-section project-timeline-section" }, [
+        h("div", { class: "project-detail-section-head" }, [
+          h("h4", {}, "Activity timeline"),
+          h("button", { type: "button", class: "link-button", onclick: () => loadProjectActivity(freshProject.id) }, "Refresh"),
+        ]),
+        loading ? h("div", { class: "project-timeline-loading" }, [icon("LoaderCircle", 18), h("span", {}, "Loading activity...")]) : projectActivityTimeline(logs),
+      ]),
+    ]);
+  }
+
+  function projectDetailStat(label, value, iconName) {
+    return h("div", { class: "project-detail-stat" }, [
+      h("span", {}, [icon(iconName, 16)]),
+      h("div", {}, [h("small", {}, label), h("strong", {}, value)]),
+    ]);
+  }
+
+  function projectActivityTimeline(logs) {
+    return logs.length ? h("div", { class: "project-timeline" }, logs.map((log) => h("article", { class: "project-timeline-item" }, [
+      h("span", { class: `feed-type-dot ${logTypeClass(log.activity_type)}` }, [icon(logTypeIcon(log.activity_type), 15)]),
+      h("div", {}, [
+        h("strong", {}, cleanLogType(log.activity_type)),
+        h("p", {}, log.description || "Workspace activity recorded."),
+        h("time", {}, formatDate(log.created_at)),
+      ]),
+    ]))) : h("div", { class: "project-timeline-empty" }, [
+      icon("Activity", 20),
+      h("strong", {}, "No project activity yet"),
+      h("small", {}, "Updates, messages, files, and access events will appear here."),
+    ]);
   }
 
   function projectForm(project) {
@@ -3087,6 +3478,41 @@
     }
   }
 
+  async function createAccessRequest(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target).entries());
+    const resourceType = String(data.resource_type || state.accessRequestResourceType || "project").toLowerCase();
+    const resourceId = Number(data.resource_id || 0);
+    if (!resourceId) {
+      toast(`Choose a ${resourceType} before sending the request.`, "error");
+      render();
+      return;
+    }
+    await run(async () => {
+      await apiClient.post("/api/access-requests", {
+        resource_type: resourceType,
+        project_id: resourceType === "project" ? resourceId : null,
+        chatter_id: resourceType === "chatter" ? resourceId : null,
+        message: String(data.message || "").trim() || null,
+      });
+      await loadAccessRequests();
+    }, "Access request sent.");
+  }
+
+  async function approveAccessRequest(id) {
+    await run(async () => {
+      await apiClient.post(`/api/access-requests/${id}/approve`, {});
+      await Promise.all([loadAccessRequests(), loadProjects(), loadChatters({ listOnly: true })]);
+    }, "Access approved.");
+  }
+
+  async function rejectAccessRequest(id) {
+    await run(async () => {
+      await apiClient.post(`/api/access-requests/${id}/reject`, {});
+      await loadAccessRequests();
+    }, "Access request rejected.");
+  }
+
   async function savePresenceStatus(status) {
     const value = String(status || "offline").toLowerCase();
     if (!["online", "away", "busy", "offline"].includes(value)) {
@@ -3131,10 +3557,24 @@
     try {
       await apiClient.post("/api/notifications/read-all", {});
       state.notifications = [];
+      state.notificationHistory = state.notificationHistory.map((item) => ({ ...item, is_read: true }));
     } catch (err) {
       toast(err.message || "Could not update notifications.", "error");
     } finally {
       state.notificationsOpen = true;
+      render();
+    }
+  }
+
+  async function markNotificationRead(id) {
+    if (!id) return;
+    try {
+      const updated = await apiClient.post(`/api/notifications/${id}/read`, {});
+      state.notificationHistory = state.notificationHistory.map((item) => Number(item.id) === Number(id) ? updated : item);
+      state.notifications = state.notifications.filter((item) => Number(item.id) !== Number(id));
+    } catch (err) {
+      toast(err.message || "Could not mark notification read.", "error");
+    } finally {
       render();
     }
   }
@@ -3461,8 +3901,8 @@
     stopMessageSync();
     resetChatterAudioState();
     Object.assign(state, {
-      user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], files: [], typingUsers: [],
-      activityLogs: [], stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+      user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
+      activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
       audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
       chatInfoExpanded: { members: false, images: false, documents: false },
       lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, bootstrapping: false, loading: false,

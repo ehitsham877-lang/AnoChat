@@ -7,12 +7,13 @@ from app.auth.service import authenticate_user, get_current_user
 from app.common import ensure_roles
 from app.database import get_db
 from app.models import User
+from app.rate_limit import check_login_rate_limit, register_rate_limit_dependency
 from app.schemas import LoginRequest, TokenOut, UserCreate, UserOut
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=UserOut, status_code=201)
+@router.post("/register", response_model=UserOut, status_code=201, dependencies=[Depends(register_rate_limit_dependency)])
 def register(payload: UserCreate, db: Session = Depends(get_db)):
     login = payload.login or payload.email
     exists = db.query(User).filter((User.login == login) | (User.email == payload.email)).first()
@@ -35,6 +36,8 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenOut)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    if request:
+        check_login_rate_limit(request, payload.login)
     user = authenticate_user(db, payload.login, payload.password, request)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid login or password")

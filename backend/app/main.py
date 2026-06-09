@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
+from app.access_requests.routes import router as access_requests_router
 from app.activity_logs.routes import router as activity_logs_router
 from app.attachments.routes import router as attachments_router
 from app.auth.password import hash_password
@@ -101,6 +102,12 @@ def ensure_runtime_schema() -> None:
     chatter_member_additions = {
         "is_read_only": f"ALTER TABLE chatter_members ADD COLUMN is_read_only BOOLEAN DEFAULT {deleted_default} NOT NULL",
     }
+    notification_preference_columns = {column["name"] for column in inspector.get_columns("notification_preferences")} if inspector.has_table("notification_preferences") else set()
+    notification_preference_additions = {
+        "email_alerts_enabled": f"ALTER TABLE notification_preferences ADD COLUMN email_alerts_enabled BOOLEAN DEFAULT {deleted_default} NOT NULL",
+        "email_chatter_messages": f"ALTER TABLE notification_preferences ADD COLUMN email_chatter_messages BOOLEAN DEFAULT TRUE NOT NULL" if dialect == "postgresql" else "ALTER TABLE notification_preferences ADD COLUMN email_chatter_messages BOOLEAN DEFAULT 1 NOT NULL",
+        "email_workspace_updates": f"ALTER TABLE notification_preferences ADD COLUMN email_workspace_updates BOOLEAN DEFAULT TRUE NOT NULL" if dialect == "postgresql" else "ALTER TABLE notification_preferences ADD COLUMN email_workspace_updates BOOLEAN DEFAULT 1 NOT NULL",
+    }
     with engine.begin() as connection:
         for column, statement in user_additions.items():
             if column not in user_columns:
@@ -110,6 +117,9 @@ def ensure_runtime_schema() -> None:
                 connection.execute(text(statement))
         for column, statement in chatter_member_additions.items():
             if column not in chatter_member_columns:
+                connection.execute(text(statement))
+        for column, statement in notification_preference_additions.items():
+            if column not in notification_preference_columns:
                 connection.execute(text(statement))
         for column, statement in message_additions.items():
             if column not in message_columns:
@@ -128,6 +138,7 @@ def startup() -> None:
 
 
 app.include_router(auth_router)
+app.include_router(access_requests_router)
 app.include_router(users_router)
 app.include_router(projects_router)
 app.include_router(chatters_router)

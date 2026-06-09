@@ -12,6 +12,7 @@ from app.common import get_or_404
 from app.config import get_settings
 from app.database import get_db
 from app.models import Attachment, Chatter, Project, User
+from app.rate_limit import sensitive_action_rate_limit_dependency, upload_rate_limit_dependency
 from app.roles.permissions import assert_chatter_access, assert_project_access, is_admin, require_chatter_write_access, require_project_write_access, require_write_access
 from app.schemas import AttachmentOut
 
@@ -64,7 +65,7 @@ def list_attachments(db: Session = Depends(get_db), current_user: User = Depends
     return query.limit(300).all()
 
 
-@router.post("/upload", response_model=AttachmentOut, status_code=201)
+@router.post("/upload", response_model=AttachmentOut, status_code=201, dependencies=[Depends(upload_rate_limit_dependency)])
 async def upload_attachment(
     file: UploadFile = File(...),
     project_id: int | None = Form(default=None),
@@ -106,7 +107,7 @@ async def upload_attachment(
         chatter_id=chatter_id,
     )
     db.add(attachment)
-    log_activity(db, "attachment_uploaded", f"{current_user.name} uploaded {attachment.filename}.", current_user.id)
+    log_activity(db, "attachment_uploaded", f"{current_user.name} uploaded {attachment.filename}.", current_user.id, project_id=project_id, chatter_id=chatter_id)
     db.commit()
     db.refresh(attachment)
     return attachment
@@ -123,7 +124,7 @@ def download_attachment(attachment_id: int, db: Session = Depends(get_db), curre
     return FileResponse(path, media_type=attachment.content_type, filename=attachment.filename)
 
 
-@router.delete("/{attachment_id}")
+@router.delete("/{attachment_id}", dependencies=[Depends(sensitive_action_rate_limit_dependency)])
 def delete_attachment(attachment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     attachment = get_or_404(db, Attachment, attachment_id)
     require_write_access(current_user)
@@ -139,6 +140,6 @@ def delete_attachment(attachment_id: int, db: Session = Depends(get_db), current
     attachment.is_deleted = True
     attachment.deleted_by_id = current_user.id
     attachment.deleted_at = func.now()
-    log_activity(db, "attachment_deleted", f"{current_user.name} deleted attachment {attachment.filename}.", current_user.id)
+    log_activity(db, "attachment_deleted", f"{current_user.name} deleted attachment {attachment.filename}.", current_user.id, project_id=attachment.project_id, chatter_id=attachment.chatter_id)
     db.commit()
     return {"ok": True}

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth.service import get_current_user
 from app.database import get_db
 from app.models import EmailLog, User
+from app.rate_limit import public_write_rate_limit_dependency
 from app.roles.permissions import require_roles
 from app.schemas import InboundEmail
 
@@ -16,7 +17,7 @@ def list_email_logs(db: Session = Depends(get_db), current_user: User = Depends(
     return db.query(EmailLog).order_by(EmailLog.created_at.desc()).limit(500).all()
 
 
-@router.post("/api/email/inbound", status_code=201)
+@router.post("/api/email/inbound", status_code=201, dependencies=[Depends(public_write_rate_limit_dependency)])
 def inbound_email(payload: InboundEmail, db: Session = Depends(get_db)):
     log = EmailLog(
         email_from=payload.email_from,
