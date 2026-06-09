@@ -1379,7 +1379,7 @@
       ]),
       h("div", { class: "project-card-divider" }),
       h("div", { class: "project-card-stats" }, [
-        projectStat("Manager", userName(project.manager_id) || "Unassigned", "User", "manager"),
+        projectStat("Manager", userName(project.manager_id) || "Unassigned", "UserRound", "manager"),
         projectStat("Customer", projectCustomerNames(project), "Users", "customer"),
         projectStat("Deadline", project.deadline || "No deadline", "Calendar", "deadline"),
         projectStat("Assigned", `${(project.members || []).length} users`, "UsersRound", "assigned"),
