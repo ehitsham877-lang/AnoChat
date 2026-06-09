@@ -1303,10 +1303,10 @@
       ]),
       h("div", { class: "project-card-divider" }),
       h("div", { class: "project-card-stats" }, [
-        projectStat("Manager", userName(project.manager_id) || "Unassigned", "User"),
-        projectStat("Customer", projectCustomerNames(project), "Users"),
-        projectStat("Deadline", project.deadline || "No deadline", "Calendar"),
-        projectStat("Assigned", `${(project.members || []).length} users`, "UsersRound"),
+        projectStat("Manager", userName(project.manager_id) || "Unassigned", "User", "manager"),
+        projectStat("Customer", projectCustomerNames(project), "Users", "customer"),
+        projectStat("Deadline", project.deadline || "No deadline", "Calendar", "deadline"),
+        projectStat("Assigned", `${(project.members || []).length} users`, "UsersRound", "assigned"),
       ]),
       h("div", { class: "project-card-divider" }),
       h("div", { class: "card-actions" }, [
@@ -1852,9 +1852,9 @@
     ]);
   }
 
-  function projectStat(label, value, iconName) {
-    return h("div", { class: "project-card-stat" }, [
-      h("span", { class: "project-stat-icon" }, [icon(iconName, 17)]),
+  function projectStat(label, value, iconName, kind) {
+    return h("div", { class: `project-card-stat${kind ? ` stat-${kind}` : ""}` }, [
+      h("span", { class: `project-stat-icon${kind ? ` stat-${kind}` : ""}` }, [icon(iconName, 17)]),
       h("div", {}, [
         h("small", {}, label),
         h("strong", {}, value),
