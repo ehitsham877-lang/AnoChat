@@ -6923,11 +6923,23 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   height: 42px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: 999px;
   color: #ffffff;
   background: linear-gradient(135deg, #1f2937, #64748b);
   font-size: 12px;
   font-weight: 900;
+}
+.chat-page .message-avatar.has-image {
+  color: transparent;
+  background: transparent;
+}
+.chat-page .message-avatar.has-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
 }
 .chat-page .own-avatar {
   background: linear-gradient(135deg, #c7d2fe, #f5d0fe);

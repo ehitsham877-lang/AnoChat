@@ -1165,7 +1165,6 @@
           h("aside", { class: "settings-side-menu", "aria-label": "Settings sections" }, [
             settingsSideItem("My Profile", activeSection === "settings-profile", null, () => jumpToSettingsSection("settings-profile")),
             settingsSideItem("Push notifications", activeSection === "settings-push", null, () => jumpToSettingsSection("settings-push")),
-            settingsSideItem("Notifications", activeSection === "settings-notifications", null, () => jumpToSettingsSection("settings-notifications")),
             settingsSideItem(isAdmin() ? "Access Requests" : "Request Access", activeSection === "settings-access", null, () => jumpToSettingsSection("settings-access")),
             settingsSideItem("Logout", false, "danger", confirmLogout),
           ]),
@@ -1212,9 +1211,6 @@
             ]) : null,
             activeSection === "settings-push" ? h("article", { class: "settings-detail-card settings-panel-card push-settings-card" }, [
               pushSettingsPanel(true),
-            ]) : null,
-            activeSection === "settings-notifications" ? h("article", { class: "settings-detail-card settings-panel-card notification-history-card" }, [
-              notificationHistoryPanel(),
             ]) : null,
             activeSection === "settings-access" ? h("article", { class: "settings-detail-card settings-panel-card access-request-card" }, [
               settingsCardHead(isAdmin() ? "Access Requests" : "Request Access", isAdmin() ? "Review workspace access requests." : "Ask an admin for project or chatter access.", "ShieldCheck"),
@@ -1703,9 +1699,10 @@
       ? `This message was deleted by ${deletedByCurrentUser ? "you" : (message.deleted_by_name || userName(message.deleted_by_id) || "a user")}.`
       : "";
     const authorName = own ? "You" : (userName(message.sender_id) || "Member");
+    const author = own ? state.user : userById(message.sender_id);
     const stamp = `${formatMessageTime(message.created_at)}${message.is_edited ? " · edited" : ""}`;
     return h("div", { class: own ? "message-row own" : "message-row", id: `message-${message.id}` }, [
-      !own ? h("span", { class: "message-avatar" }, initials(authorName)) : null,
+      !own ? userAvatar(author, "message-avatar", authorName) : null,
       h("div", { class: "message-stack" }, [
         h("div", { class: `${message.is_deleted ? "bubble deleted-message" : "bubble"}${hasAttachments ? " attachment-bubble" : ""}${hasAudio ? " voice-bubble" : ""}` }, [
           h("div", { class: "bubble-meta" }, [
@@ -1723,7 +1720,7 @@
         ]),
         deletedNote ? h("small", { class: "deleted-message-note" }, [icon("Trash", 12), h("span", {}, deletedNote)]) : null,
       ]),
-      own ? h("span", { class: "message-avatar own-avatar" }, initials(state.user?.name || "You")) : null,
+      own ? userAvatar(state.user, "message-avatar own-avatar", state.user?.name || "You") : null,
     ]);
   }
 
@@ -2982,7 +2979,7 @@
       h("div", { class: "email-alert-panel" }, [
         h("div", { class: "account-settings-head" }, [
           h("span", {}, [icon("Mail", 16)]),
-          h("div", {}, [h("strong", {}, "Email alerts"), h("small", {}, "Send important alerts to your account email when SMTP is configured.")]),
+          h("div", {}, [h("strong", {}, "Email alerts"), h("small", {}, "Get priority workspace updates delivered to your inbox.")]),
         ]),
         h("label", { class: "check-row" }, [
           h("input", { type: "checkbox", checked: !!prefs.email_alerts_enabled, onchange: (event) => saveNotificationPreference("email_alerts_enabled", event.target.checked) }),
@@ -3002,8 +2999,8 @@
 
   function pushStatusText(supported, configured, enabled) {
     if (!supported) return "This browser does not support web push.";
-    if (!configured) return "Add VAPID keys on the backend to enable browser or mobile push.";
-    return enabled ? "Enabled for this account." : "Off until you enable it for this browser.";
+    if (!configured) return "Real-time device alerts are being prepared for this workspace.";
+    return enabled ? "Instant alerts are active for this device." : "Turn on instant alerts for messages and workspace updates.";
   }
 
   function profileDetail(label, value, iconName) {
@@ -4032,7 +4029,11 @@
   function emptyState(text) { return h("div", { class: "empty-state" }, [h("span", {}, [icon("Boxes")]), h("p", {}, text)]); }
   function restricted(text) { return h("article", { class: "card" }, [cardHeader("Restricted", "Your current role cannot access this section."), emptyState(text)]); }
   function userName(id) {
-    if (!id) return "";
+    const found = userById(id);
+    return found ? (found.name || found.login || found.email || `User ${id}`) : (id ? `User ${id}` : "");
+  }
+  function userById(id) {
+    if (!id) return null;
     const userId = Number(id);
     const pools = [
       state.user ? [state.user] : [],
@@ -4042,9 +4043,9 @@
     ];
     for (const pool of pools) {
       const found = pool.find((user) => Number(user.id) === userId);
-      if (found) return found.name || found.login || found.email || `User ${id}`;
+      if (found) return found;
     }
-    return `User ${id}`;
+    return null;
   }
   function projectName(id) { return state.projects.find((p) => p.id === id)?.name || ""; }
   function projectLabelForChatter(chatter) {
