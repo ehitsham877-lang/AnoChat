@@ -27,6 +27,7 @@
     accessRequests: [],
     accessRequestOptions: { projects: [], chatters: [] },
     accessRequestResourceType: "project",
+    settingsSection: "settings-profile",
     notificationsOpen: false,
     pushConfig: null,
     notificationPreferences: null,
@@ -686,7 +687,7 @@
         activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
         chatInfoExpanded: { members: false, images: false, documents: false },
-        lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
+        lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile",
       });
     });
   }
@@ -907,7 +908,7 @@
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
-        lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0,
+        lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile",
       });
       toast(err.message || "Could not restore your session. Please sign in again.", "error");
     } finally {
@@ -1090,7 +1091,7 @@
             h("button", { type: "button", onclick: (event) => event.preventDefault() }, "Search"),
           ]),
           h("div", { class: "settings-top-actions" }, [
-            h("button", { type: "button", class: "settings-mini-action", onclick: refreshNotificationHistory, title: "Refresh notifications", "aria-label": "Refresh notifications" }, [icon("Bell", 17)]),
+            presenceControl(),
             h("button", { type: "button", class: "settings-mini-action", onclick: () => openModal("profile", state.user), title: "View profile", "aria-label": "View profile" }, [icon("UserRound", 17)]),
             h("button", { type: "button", class: "settings-mini-action active", onclick: () => {}, title: "Settings", "aria-label": "Settings" }, [icon("Settings", 17)]),
             h("button", { type: "button", class: "settings-mini-action", onclick: toggleTheme, title: "Toggle theme", "aria-label": "Toggle theme" }, [icon(state.theme === "dark" ? "Sun" : "Moon", 17)]),
@@ -1099,16 +1100,15 @@
         h("h1", { class: "settings-title" }, "Account Settings"),
         h("div", { class: "settings-layout" }, [
           h("aside", { class: "settings-side-menu", "aria-label": "Settings sections" }, [
-            settingsSideItem("My Profile", true),
-            settingsSideItem("Password & Security"),
-            settingsSideItem("Appearance"),
-            settingsSideItem("Notifications"),
-            settingsSideItem(isAdmin() ? "Access Requests" : "Request Access"),
-            settingsSideItem("Data Export"),
-            settingsSideItem("Logout", false, "danger"),
-          ]),
-          h("div", { class: "settings-main-panel" }, [
-            h("article", { class: "settings-profile-card" }, [
+          settingsSideItem("My Profile", state.settingsSection === "settings-profile", null, () => jumpToSettingsSection("settings-profile")),
+          settingsSideItem("Password & Security", state.settingsSection === "settings-security", null, () => jumpToSettingsSection("settings-security")),
+          settingsSideItem("Push notifications", state.settingsSection === "settings-push", null, () => jumpToSettingsSection("settings-push")),
+          settingsSideItem("Notifications", state.settingsSection === "settings-notifications", null, () => jumpToSettingsSection("settings-notifications")),
+          settingsSideItem(isAdmin() ? "Access Requests" : "Request Access", state.settingsSection === "settings-access", null, () => jumpToSettingsSection("settings-access")),
+          settingsSideItem("Logout", false, "danger", confirmLogout),
+        ]),
+        h("div", { class: "settings-main-panel" }, [
+            h("article", { class: "settings-profile-card", id: "settings-profile" }, [
               h("div", { class: "settings-profile-content" }, [
                 h("span", { class: `settings-profile-avatar presence-avatar presence-${status}` }, initials(state.user?.name || "User")),
                 h("span", {}, [
@@ -1119,7 +1119,7 @@
               ]),
               settingsEditButton(() => openModal("profile", state.user)),
             ]),
-            h("article", { class: "settings-detail-card" }, [
+            h("article", { class: "settings-detail-card", id: "settings-security" }, [
               settingsDetailHead("Personal Information", () => openModal("profile", state.user)),
               h("div", { class: "settings-info-grid" }, [
                 settingsInfoItem("First Name", firstName),
@@ -1130,7 +1130,7 @@
                 settingsInfoItem("Status", cap(status)),
               ]),
             ]),
-            h("article", { class: "settings-detail-card" }, [
+            h("article", { class: "settings-detail-card", id: "settings-appearance" }, [
               settingsDetailHead("Workspace Preferences"),
               h("div", { class: "settings-preference-list" }, [
                 h("div", { class: "settings-row" }, [
@@ -1146,17 +1146,17 @@
                 ]),
               ]),
             ]),
-            h("article", { class: "settings-detail-card settings-panel-card notification-history-card" }, [
+            h("article", { class: "settings-detail-card settings-panel-card notification-history-card", id: "settings-notifications" }, [
               notificationHistoryPanel(),
             ]),
-            h("article", { class: "settings-detail-card settings-panel-card push-settings-card" }, [
+            h("article", { class: "settings-detail-card settings-panel-card push-settings-card", id: "settings-push" }, [
               pushSettingsPanel(true),
             ]),
-            h("article", { class: "settings-detail-card settings-panel-card access-request-card" }, [
+            h("article", { class: "settings-detail-card settings-panel-card access-request-card", id: "settings-access" }, [
               settingsCardHead(isAdmin() ? "Access Requests" : "Request Access", isAdmin() ? "Review workspace access requests." : "Ask an admin for project or chatter access.", "ShieldCheck"),
               accessRequestsPanel(),
             ]),
-            h("article", { class: "settings-detail-card danger-settings-card" }, [
+            h("article", { class: "settings-detail-card danger-settings-card", id: "settings-logout" }, [
               settingsCardHead("Logout", "Sign out of this device safely.", "LogOut"),
               h("p", {}, "You will need to sign in again to access this workspace."),
               h("button", { class: "btn btn-danger btn-block", onclick: confirmLogout }, [icon("LogOut", 16), "Logout"]),
@@ -1167,8 +1167,21 @@
     ], "settings-page");
   }
 
-  function settingsSideItem(label, active, tone) {
-    return h("span", { class: `${active ? "active " : ""}${tone === "danger" ? "danger" : ""}`.trim() }, label);
+  function settingsSideItem(label, active, tone, onClick) {
+    return h("button", {
+      type: "button",
+      class: `${active ? "active " : ""}${tone === "danger" ? "danger" : ""}`.trim(),
+      onclick: onClick,
+    }, label);
+  }
+
+  function jumpToSettingsSection(id) {
+    state.settingsSection = id || "settings-profile";
+    render();
+    setTimeout(() => {
+      const target = document.getElementById(id);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   }
 
   function settingsEditButton(onClick) {
@@ -3963,7 +3976,7 @@
       activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
       audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
       chatInfoExpanded: { members: false, images: false, documents: false },
-      lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, bootstrapping: false, loading: false,
+      lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, bootstrapping: false, loading: false, settingsSection: "settings-profile",
     });
     toast(event.detail || "Session expired. Please sign in again.", "error");
     render();

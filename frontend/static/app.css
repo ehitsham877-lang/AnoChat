@@ -1040,23 +1040,35 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   padding: 22px 20px;
   border-right: 1px solid rgba(226, 232, 240, .72);
 }
-.settings-side-menu span {
+.settings-side-menu button {
   min-height: 44px;
   display: flex;
   align-items: center;
+  width: 100%;
+  border: 0;
+  text-align: left;
   border-radius: 10px;
   padding: 0 12px;
   color: #667085;
   font-size: 14px;
   font-weight: 750;
+  background: transparent;
 }
-.settings-side-menu span.active {
+.settings-side-menu button:hover {
+  background: rgba(37, 99, 235, .06);
+  color: var(--primary);
+}
+.settings-side-menu button.active {
   color: var(--primary);
   background: #e8f2ff;
 }
-.settings-side-menu span.danger {
+.settings-side-menu button.danger {
   margin-top: 22px;
   color: #ef4444;
+}
+.settings-side-menu button.danger:hover {
+  background: rgba(239, 68, 68, .08);
+  color: #dc2626;
 }
 .settings-main-panel {
   min-width: 0;
@@ -4982,14 +4994,14 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-theme="dark"] .settings-mini-action:hover,
 :root[data-theme="dark"] .settings-edit-btn,
 :root[data-theme="dark"] .settings-card-icon,
-:root[data-theme="dark"] .settings-side-menu span.active {
+:root[data-theme="dark"] .settings-side-menu button.active {
   color: #bfdbfe;
   background: rgba(37, 99, 235, .18);
 }
 :root[data-theme="dark"] .settings-side-menu {
   border-right-color: #263244;
 }
-:root[data-theme="dark"] .settings-side-menu span {
+:root[data-theme="dark"] .settings-side-menu button {
   color: #a8b3c7;
 }
 :root[data-theme="dark"] .settings-row,
@@ -5638,12 +5650,12 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
     border-right: 0;
     border-bottom: 1px solid rgba(226, 232, 240, .72);
   }
-  .settings-side-menu span {
+  .settings-side-menu button {
     min-height: 38px;
     flex: 0 0 auto;
     white-space: nowrap;
   }
-  .settings-side-menu span.danger {
+  .settings-side-menu button.danger {
     margin-top: 0;
   }
   .settings-main-panel {
