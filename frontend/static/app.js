@@ -50,6 +50,7 @@
     sendingMessage: false,
     composerBody: "",
     pendingAttachment: null,
+    pendingAttachmentPreviewUrl: null,
     pendingVoiceDuration: null,
     pendingVoicePreviewUrl: null,
     voiceRecording: null,
@@ -685,7 +686,7 @@
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
-        activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+        activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingAttachmentPreviewUrl: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
         chatInfoExpanded: { members: false, images: false, documents: false },
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile",
@@ -907,7 +908,7 @@
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
-        activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+        activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingAttachmentPreviewUrl: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile",
       });
@@ -1789,6 +1790,7 @@
       state.replyTo ? replyComposerPreview() : null,
       state.voiceRecording ? voiceRecordingBar() : null,
       state.pendingVoicePreviewUrl ? pendingVoicePreview() : null,
+      state.pendingAttachment && !state.pendingVoicePreviewUrl ? pendingAttachmentPreview() : null,
       h("div", { class: "composer-bar mention-anchor" }, [
         h("label", { class: "file-chip chat-file-chip", title: "Attach file", "aria-label": "Attach file" }, [icon("Paperclip"), h("span", { class: "file-chip-text" }, state.pendingAttachment?.name || "Attach"), h("input", { type: "file", name: "file", onchange: updateAttachmentLabel })]),
         h("div", { class: "composer-input-wrap" }, [
@@ -2062,6 +2064,31 @@
     ]);
   }
 
+  function pendingAttachmentPreview() {
+    const file = state.pendingAttachment;
+    if (!file || state.pendingVoicePreviewUrl) return null;
+    const isImage = isImageFile(file);
+    return h("div", { class: "pending-attachment-preview" }, [
+      h("span", { class: "pending-attachment-media" }, [
+        isImage && state.pendingAttachmentPreviewUrl
+          ? h("img", { src: state.pendingAttachmentPreviewUrl, alt: file.name || file.filename || "Attachment preview", loading: "lazy" })
+          : fileTypeBadge(file),
+      ]),
+      h("div", { class: "pending-attachment-copy" }, [
+        h("strong", {}, file.filename || file.name || "Attachment"),
+        h("small", {}, prettyBytes(file.size_bytes || file.size || 0)),
+        h("span", {}, isImage ? "Image ready to send." : "Attachment ready to send."),
+      ]),
+      h("button", {
+        type: "button",
+        class: "pending-attachment-remove",
+        title: "Remove attachment",
+        "aria-label": "Remove attachment",
+        onclick: () => clearPendingAttachment(true),
+      }, [icon("X", 14)]),
+    ]);
+  }
+
   function openImagePreview(file) {
     state.modal = { type: "imagePreview", file };
     render();
@@ -2197,6 +2224,7 @@
   }
 
   function clearPendingVoiceNote(showToast, skipRender) {
+    clearPendingAttachment(false, true);
     if (state.pendingVoicePreviewUrl) URL.revokeObjectURL(state.pendingVoicePreviewUrl);
     const hadVoiceNote = !!state.pendingVoiceDuration || !!state.pendingVoicePreviewUrl;
     state.pendingAttachment = null;
@@ -2204,6 +2232,15 @@
     state.pendingVoicePreviewUrl = null;
     if (state.composerBody === "Voice note") state.composerBody = "";
     if (showToast && hadVoiceNote) toast("Voice note discarded.", "success");
+    if (!skipRender) render();
+  }
+
+  function clearPendingAttachment(showToast, skipRender) {
+    if (state.pendingAttachmentPreviewUrl) URL.revokeObjectURL(state.pendingAttachmentPreviewUrl);
+    const hadAttachment = !!state.pendingAttachment;
+    state.pendingAttachment = null;
+    state.pendingAttachmentPreviewUrl = null;
+    if (showToast && hadAttachment) toast("Attachment discarded.", "success");
     if (!skipRender) render();
   }
 
@@ -2415,10 +2452,15 @@
 
   function updateAttachmentLabel(event) {
     clearPendingVoiceNote(false, true);
+    clearPendingAttachment(false, true);
     state.pendingAttachment = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+    if (state.pendingAttachment && isImageFile(state.pendingAttachment)) {
+      state.pendingAttachmentPreviewUrl = URL.createObjectURL(state.pendingAttachment);
+    }
     const label = event.target.closest(".file-chip");
     const text = label ? label.querySelector(".file-chip-text") : null;
     if (text) text.textContent = state.pendingAttachment?.name || "Attach";
+    render();
   }
 
   function monitoringView() {
@@ -3201,7 +3243,7 @@
       state.chatMessageSearch = "";
       state.chatHeaderMenuOpen = false;
       clearPendingVoiceNote(false, true);
-      state.pendingAttachment = null;
+      clearPendingAttachment(false, true);
       state.typingUsers = [];
       state.messages = [];
       state.lastMessageSignature = "";
@@ -3230,7 +3272,7 @@
     setActiveChatter(id);
     state.tab = "chatters";
     clearPendingVoiceNote(false, true);
-    state.pendingAttachment = null;
+    clearPendingAttachment(false, true);
     state.replyTo = null;
     state.editingMessage = null;
     state.editingBody = "";
@@ -3286,7 +3328,7 @@
       if (sameId(state.activeChatter, chatterId)) {
         event.target.reset();
         state.composerBody = "";
-        state.pendingAttachment = null;
+        clearPendingAttachment(false, true);
         state.pendingVoiceDuration = null;
         if (state.pendingVoicePreviewUrl) URL.revokeObjectURL(state.pendingVoicePreviewUrl);
         state.pendingVoicePreviewUrl = null;
@@ -3976,7 +4018,7 @@
     resetChatterAudioState();
     Object.assign(state, {
       user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
-      activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingVoiceDuration: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
+      activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingAttachmentPreviewUrl: null, pendingVoiceDuration: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
       audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
       chatInfoExpanded: { members: false, images: false, documents: false },
       lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, bootstrapping: false, loading: false, settingsSection: "settings-profile",
