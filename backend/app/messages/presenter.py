@@ -33,8 +33,9 @@ def message_out(message: Message, current_user: User) -> dict:
     deleted_by = message.deleted_by
     body = (message.original_body or message.body) if (admin or sender_admin) else message.body
     attachments = message.attachments if admin else [attachment for attachment in message.attachments if not attachment.is_deleted]
+    own_message = message.sender_id == current_user.id
     can_edit = can_edit_message(message, current_user)
-    edit_deadline = message_edit_deadline(message) if message.sender_id == current_user.id and not message.is_deleted else None
+    edit_deadline = message_edit_deadline(message) if own_message and not message.is_deleted else None
     created_at = utc_datetime(message.created_at)
     updated_at = utc_datetime(message.updated_at)
     is_edited = bool(created_at and updated_at and updated_at > created_at and not message.is_deleted)
@@ -50,7 +51,7 @@ def message_out(message: Message, current_user: User) -> dict:
         "is_moderated": message.is_moderated,
         "moderation_reason": message.moderation_reason,
         "attachments": [] if message.is_deleted and not admin else attachments,
-        "seen_by": message.seen_by,
+        "seen_by": message.seen_by if own_message else [],
         "created_at": message.created_at,
         "is_deleted": message.is_deleted,
         "deleted_by_id": message.deleted_by_id,
