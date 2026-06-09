@@ -5038,6 +5038,12 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-theme="dark"] .bubble-meta {
   color: #a8b3c7;
 }
+:root[data-theme="dark"] .chat-page .bubble-meta > strong {
+  color: #f8fafc;
+}
+:root[data-theme="dark"] .chat-page .own .bubble-meta > strong {
+  color: #ffffff;
+}
 :root[data-theme="dark"] .message-action {
   color: #cbd5e1;
   background: rgba(37,99,235,.16);
@@ -6694,11 +6700,12 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   box-shadow: inset 0 0 0 1px rgba(226, 232, 240, .68);
 }
 .chat-page .conversation {
+  position: relative;
   min-height: 78px;
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 12px;
   padding: 12px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 16px;
   background: #ffffff;
   box-shadow: none;
@@ -6707,6 +6714,24 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .chat-page .conversation.active {
   background: #f3f7ff;
   box-shadow: none;
+}
+.chat-page .conversation.active {
+  border-color: rgba(37, 99, 235, .24);
+  background: #eef5ff;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, .08);
+}
+.chat-page .conversation.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 0 999px 999px 0;
+  background: #2563eb;
+}
+.chat-page .conversation.active .conversation-avatar {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .14);
 }
 .chat-page .conversation-avatar {
   width: 40px;
@@ -6727,11 +6752,22 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   margin-left: auto;
 }
 :root[data-theme="dark"] .chat-page .conversation {
+  border-color: transparent;
   background: #111827;
 }
-:root[data-theme="dark"] .chat-page .conversation:hover,
-:root[data-theme="dark"] .chat-page .conversation.active {
+:root[data-theme="dark"] .chat-page .conversation:hover {
   background: #172033;
+}
+:root[data-theme="dark"] .chat-page .conversation.active {
+  border-color: rgba(96, 165, 250, .28);
+  background: #1b2942;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, .16);
+}
+:root[data-theme="dark"] .chat-page .conversation.active::before {
+  background: #60a5fa;
+}
+:root[data-theme="dark"] .chat-page .conversation.active .conversation-avatar {
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, .18);
 }
 :root[data-theme="dark"] .chat-page .conversation-title-row strong {
   color: #f8fafc;
