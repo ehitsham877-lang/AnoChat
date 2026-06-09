@@ -75,6 +75,7 @@ class User(TimestampMixin, Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     read_only: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     phone: Mapped[str | None] = mapped_column(String(64))
+    avatar_attachment_id: Mapped[int | None] = mapped_column(ForeignKey("attachments.id", ondelete="SET NULL"), nullable=True)
     messenger_status: Mapped[str] = mapped_column(String(32), default="offline")
     messenger_last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     active_session_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

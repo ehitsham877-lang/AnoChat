@@ -85,6 +85,8 @@
     toasts: [],
     attachmentPreviews: {},
     loadingPreviews: new Set(),
+    avatarPreviews: {},
+    loadingAvatarPreviews: new Set(),
     audioPreviews: {},
     audioState: {},
     loadingAudio: new Set(),
@@ -218,6 +220,53 @@
   function availableNavItems() {
     if (isAdmin()) return navItems;
     return navItems.filter((item) => ["dashboard", "projects", "chatters", "settings"].indexOf(item.key) >= 0);
+  }
+  function avatarCacheKey(user) {
+    const id = Number(user?.avatar_attachment_id);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }
+  function avatarUrlFor(user) {
+    const key = avatarCacheKey(user);
+    if (!key) return "";
+    return Object.prototype.hasOwnProperty.call(state.avatarPreviews, key) ? (state.avatarPreviews[key] || "") : "";
+  }
+  function revokeAvatarPreview(id) {
+    const key = Number(id);
+    if (!Number.isFinite(key) || key <= 0) return;
+    const url = state.avatarPreviews[key];
+    if (url) {
+      try { URL.revokeObjectURL(url); } catch (_) {}
+    }
+    delete state.avatarPreviews[key];
+    state.loadingAvatarPreviews.delete(key);
+  }
+  function revokeAllAvatarPreviews() {
+    Object.keys(state.avatarPreviews).forEach((id) => revokeAvatarPreview(id));
+    state.avatarPreviews = {};
+    state.loadingAvatarPreviews.clear();
+  }
+  async function ensureAvatarPreview(user) {
+    const key = avatarCacheKey(user);
+    if (!key || Object.prototype.hasOwnProperty.call(state.avatarPreviews, key) || state.loadingAvatarPreviews.has(key)) return;
+    state.loadingAvatarPreviews.add(key);
+    try {
+      const blob = await apiClient.get(`/api/attachments/${key}`);
+      state.avatarPreviews[key] = URL.createObjectURL(blob);
+    } catch (_) {
+      state.avatarPreviews[key] = null;
+    } finally {
+      state.loadingAvatarPreviews.delete(key);
+      renderWhenAudioIdle();
+    }
+  }
+  function userAvatar(user, className, fallbackLabel) {
+    if (user?.avatar_attachment_id) ensureAvatarPreview(user);
+    const src = avatarUrlFor(user);
+    return h("span", { class: `${className}${src ? " has-image" : ""}`.trim() }, [
+      src
+        ? h("img", { src, alt: `${user?.name || fallbackLabel || "User"} profile photo` })
+        : initials(fallbackLabel || user?.name || "User"),
+    ]);
   }
   function roleLabel(role) {
     const labels = { admin: "Admin", manager: "Project Manager", staff: "Project Manager", developer: "Developer", customer: "Customer" };
@@ -683,6 +732,7 @@
       stopMessageSync();
       apiClient.clearToken();
       clearActiveChatter();
+      revokeAllAvatarPreviews();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
@@ -905,6 +955,7 @@
       stopMessageSync();
       apiClient.clearToken();
       resetChatterAudioState();
+      revokeAllAvatarPreviews();
       Object.assign(state, {
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
@@ -1110,14 +1161,32 @@
           h("div", { class: "settings-main-panel" }, [
             activeSection === "settings-profile" ? h("article", { class: "settings-profile-card" }, [
               h("div", { class: "settings-profile-content" }, [
-                h("span", { class: `settings-profile-avatar presence-avatar presence-${status}` }, initials(state.user?.name || "User")),
+                userAvatar(state.user, `avatar settings-profile-avatar presence-avatar presence-${status}`, state.user?.name || "User"),
                 h("span", {}, [
                   h("strong", {}, state.user?.name || "AnoChat User"),
                   h("small", {}, roleText),
                   h("small", {}, email),
                 ]),
               ]),
-              settingsEditButton(() => openModal("profile", state.user)),
+              h("div", { class: "settings-profile-actions" }, [
+                h("button", {
+                  type: "button",
+                  class: "settings-photo-btn",
+                  onclick: () => document.getElementById("settings-photo-input")?.click(),
+                }, [icon("Image", 16), state.user?.avatar_attachment_id ? "Change photo" : "Add photo"]),
+                settingsEditButton(() => openModal("profile", state.user)),
+              ]),
+              h("input", {
+                id: "settings-photo-input",
+                type: "file",
+                accept: "image/*",
+                hidden: true,
+                onchange: async (event) => {
+                  const file = event.target.files && event.target.files[0];
+                  event.target.value = "";
+                  await uploadProfilePhoto(file);
+                },
+              }),
             ]) : null,
             activeSection === "settings-profile" ? h("article", { class: "settings-detail-card" }, [
               settingsDetailHead("Personal Information", () => openModal("profile", state.user)),
@@ -2836,7 +2905,7 @@
     const currentUser = Number(user?.id) === Number(state.user?.id);
     return h("div", { class: "profile-modal-body" }, [
       h("div", { class: "profile-modal-hero" }, [
-        h("span", { class: `avatar profile-modal-avatar presence-avatar presence-${user?.messenger_status || "offline"}` }, initials(user?.name || "User")),
+        userAvatar(user, `avatar profile-modal-avatar presence-avatar presence-${user?.messenger_status || "offline"}`, user?.name || "User"),
         h("div", {}, [
           h("h3", {}, user?.name || "User"),
           h("p", {}, user?.email || user?.login || ""),
@@ -3506,6 +3575,36 @@
         members: (chatter.members || []).map((member) => member.id === updated.id ? updated : member),
       }));
     }, "Password updated.");
+  }
+
+  async function uploadProfilePhoto(file) {
+    if (!file) return;
+    if (!String(file.type || "").startsWith("image/")) {
+      toast("Select a valid image file for your profile photo.", "error");
+      render();
+      return;
+    }
+    const previousAvatarId = state.user?.avatar_attachment_id || null;
+    await run(async () => {
+      const upload = new FormData();
+      upload.append("file", file);
+      const attachment = await apiClient.post("/api/attachments/upload", upload);
+      let updated;
+      try {
+        updated = await apiClient.put(`/api/users/${state.user.id}`, { avatar_attachment_id: attachment.id });
+      } catch (err) {
+        try { await apiClient.del(`/api/attachments/${attachment.id}`); } catch (_) {}
+        throw err;
+      }
+      if (previousAvatarId && Number(previousAvatarId) !== Number(updated.avatar_attachment_id)) revokeAvatarPreview(previousAvatarId);
+      state.user = updated;
+      if (state.modal?.type === "profile") state.modal = { type: "profile", data: updated };
+      if (state.users.length) state.users = state.users.map((user) => user.id === updated.id ? updated : user);
+      state.chatters = state.chatters.map((chatter) => ({
+        ...chatter,
+        members: (chatter.members || []).map((member) => member.id === updated.id ? updated : member),
+      }));
+    }, "Profile photo updated.");
   }
 
   function pushSupported() {

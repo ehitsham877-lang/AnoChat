@@ -30,6 +30,7 @@ class UserUpdate(BaseModel):
     login: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
+    avatar_attachment_id: int | None = None
     password: str | None = Field(default=None, min_length=8)
     active: bool | None = None
     read_only: bool | None = None
@@ -46,6 +47,7 @@ class UserOut(BaseModel):
     active: bool
     read_only: bool = False
     phone: str | None = None
+    avatar_attachment_id: int | None = None
     messenger_status: str
     roles: list[RoleOut] = []
     created_at: datetime

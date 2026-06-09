@@ -89,6 +89,7 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     data = payload.model_dump(exclude_unset=True)
     roles = data.pop("roles", None)
     password = data.pop("password", None)
+    avatar_attachment_id = data.pop("avatar_attachment_id", None)
     if roles is not None or "active" in data or "read_only" in data:
         require_roles(current_user, {"admin"})
         require_write_access(current_user)
@@ -100,6 +101,17 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         data["email"] = str(data["email"]).strip().lower()
     if "login" in data and data["login"] is not None:
         data["login"] = str(data["login"]).strip().lower()
+    if avatar_attachment_id:
+        attachment = get_or_404(db, Attachment, avatar_attachment_id)
+        if attachment.is_deleted:
+            raise HTTPException(status_code=404, detail="Attachment deleted")
+        if not (attachment.content_type or "").startswith("image/"):
+            raise HTTPException(status_code=400, detail="Select an image file for the profile picture")
+        if current_user.id != user_id and not is_admin(current_user):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        if attachment.uploaded_by_id not in {current_user.id, user.id} and not is_admin(current_user):
+            raise HTTPException(status_code=403, detail="You can only use your own uploaded image")
+        data["avatar_attachment_id"] = attachment.id
     was_active = user.active
     for key, value in data.items():
         setattr(user, key, value)

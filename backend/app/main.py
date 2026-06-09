@@ -93,6 +93,7 @@ def ensure_runtime_schema() -> None:
     user_additions = {
         "active_session_version": "ALTER TABLE users ADD COLUMN active_session_version INTEGER DEFAULT 0 NOT NULL",
         "read_only": f"ALTER TABLE users ADD COLUMN read_only BOOLEAN DEFAULT {deleted_default} NOT NULL",
+        "avatar_attachment_id": "ALTER TABLE users ADD COLUMN avatar_attachment_id INTEGER",
     }
     project_member_columns = {column["name"] for column in inspector.get_columns("project_members")} if inspector.has_table("project_members") else set()
     project_member_additions = {
