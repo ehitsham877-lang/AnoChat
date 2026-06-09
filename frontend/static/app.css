@@ -1202,6 +1202,25 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .settings-panel-card .access-request-panel {
   padding: 18px 22px 22px;
 }
+.settings-logout-compact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 4px 2px 2px;
+}
+.settings-logout-compact strong {
+  display: block;
+  color: var(--text);
+  font-size: 16px;
+}
+.settings-logout-compact small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
 .settings-card-head {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
@@ -1336,9 +1355,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .danger-settings-card {
   border-color: color-mix(in srgb, #ef4444 22%, var(--line));
-}
-.danger-settings-card p {
-  margin: 0;
 }
 .danger-settings-card .btn-danger {
   min-height: 46px;

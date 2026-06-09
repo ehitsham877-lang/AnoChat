@@ -1144,8 +1144,13 @@
               accessRequestsPanel(),
             ]) : null,
             activeSection === "settings-logout" ? h("article", { class: "settings-detail-card danger-settings-card" }, [
-              settingsCardHead("Logout", "Sign out of this device safely.", "LogOut"),
-              h("p", {}, "You will need to sign in again to access this workspace."),
+              h("div", { class: "settings-logout-compact" }, [
+                h("span", { class: "settings-card-icon" }, [icon("LogOut", 18)]),
+                h("div", {}, [
+                  h("strong", {}, "Sign out of this device"),
+                  h("small", {}, "You will need to sign in again to access this workspace."),
+                ]),
+              ]),
               h("button", { class: "btn btn-danger btn-block", onclick: confirmLogout }, [icon("LogOut", 16), "Logout"]),
             ]) : null,
           ]),
