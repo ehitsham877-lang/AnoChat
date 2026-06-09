@@ -1572,7 +1572,12 @@
     if (!members.length) return h("span", { class: "member-avatar-empty", title: "No members yet" }, "No members");
     const visible = members.slice(0, 3);
     const extra = members.length - visible.length;
-    const avatars = visible.map((member) => h("span", { class: "member-mini-avatar", title: member.name || member.email || "Member" }, initials(member.name || member.email)));
+    const avatars = visible.map((member) => {
+      const label = member.name || member.email || "Member";
+      const avatar = userAvatar(member, "member-mini-avatar", label);
+      avatar.title = label;
+      return avatar;
+    });
     if (extra > 0) avatars.push(h("span", { class: "member-mini-avatar extra", title: `${extra} more member${extra === 1 ? "" : "s"}` }, `+${extra}`));
     return h("span", { class: "member-avatar-stack", title: chatterMemberText(chatter) }, avatars);
   }
@@ -1606,7 +1611,7 @@
       canManage() ? chatterInfoActions(chatter) : null,
       chatInfoSectionTitle("Users", "Members", members.length, "members", memberLimit),
       members.length ? h("div", { class: "conversation-details-members" }, visibleMembers.map((member) => h("div", { class: "conversation-detail-member" }, [
-        h("span", { class: "member-mini-avatar" }, initials(member.name || member.email)),
+        userAvatar(member, "member-mini-avatar", member.name || member.email || "Member"),
         h("span", {}, [h("strong", {}, member.name || member.email), h("small", {}, displayRoles(member).join(", ") || "Member")]),
       ]))) : h("div", { class: "conversation-details-empty" }, "No members assigned."),
       chatInfoSectionTitle("Image", "Shared photos/screenshots", images.length, "images", imageLimit),
@@ -3048,7 +3053,7 @@
       h("div", { class: "detail-section" }, [
         h("div", { class: "detail-section-head" }, [h("h4", {}, "Members"), h("span", {}, `${members.length}`)]),
         members.length ? h("div", { class: "detail-member-list" }, members.map((member) => h("div", { class: "detail-member" }, [
-          h("span", { class: "member-mini-avatar" }, initials(member.name || member.email)),
+          userAvatar(member, "member-mini-avatar", member.name || member.email || "Member"),
           h("span", {}, [h("strong", {}, member.name || member.email), h("small", {}, displayRoles(member).join(", ") || "Member")]),
         ]))) : detailEmpty("No members assigned."),
       ]),
@@ -3092,7 +3097,7 @@
           h("small", {}, String(viewers.length)),
         ]),
         viewers.length ? h("div", { class: "message-info-list" }, viewers.map((user) => h("div", { class: "message-info-person" }, [
-          h("span", { class: "member-mini-avatar" }, initials(user.name || user.email || user.login || "User")),
+          userAvatar(user, "member-mini-avatar", user.name || user.email || user.login || "User"),
           h("span", {}, [
             h("strong", {}, user.name || user.login || user.email || `User ${user.id}`),
             h("small", {}, user.email || displayRoles(user).join(", ") || "Seen"),
@@ -3133,7 +3138,7 @@
       h("section", { class: "project-detail-section" }, [
         h("div", { class: "project-detail-section-head" }, [h("h4", {}, "Assigned members"), h("span", {}, `${members.length}`)]),
         members.length ? h("div", { class: "project-member-grid" }, members.map((member) => h("div", { class: "project-member-chip" }, [
-          h("span", { class: "member-mini-avatar" }, initials(member.name || member.email)),
+          userAvatar(member, "member-mini-avatar", member.name || member.email || "Member"),
           h("span", {}, [h("strong", {}, member.name || member.email), h("small", {}, displayRoles(member).join(", ") || "Member")]),
         ]))) : detailEmpty("No members assigned."),
       ]),
