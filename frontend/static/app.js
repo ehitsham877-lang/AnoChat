@@ -1082,7 +1082,7 @@
     const nameParts = String(state.user?.name || "AnoChat User").trim().split(/\s+/);
     const firstName = nameParts[0] || "AnoChat";
     const lastName = nameParts.slice(1).join(" ") || "-";
-    const activeSection = state.settingsSection || "settings-profile";
+    const activeSection = state.settingsSection === "settings-security" ? "settings-profile" : (state.settingsSection || "settings-profile");
     return page([
       h("section", { class: "settings-shell" }, [
         h("div", { class: "settings-topbar" }, [
@@ -1100,11 +1100,10 @@
         h("div", { class: "settings-layout" }, [
           h("aside", { class: "settings-side-menu", "aria-label": "Settings sections" }, [
             settingsSideItem("My Profile", activeSection === "settings-profile", null, () => jumpToSettingsSection("settings-profile")),
-            settingsSideItem("Password & Security", activeSection === "settings-security", null, () => jumpToSettingsSection("settings-security")),
             settingsSideItem("Push notifications", activeSection === "settings-push", null, () => jumpToSettingsSection("settings-push")),
             settingsSideItem("Notifications", activeSection === "settings-notifications", null, () => jumpToSettingsSection("settings-notifications")),
             settingsSideItem(isAdmin() ? "Access Requests" : "Request Access", activeSection === "settings-access", null, () => jumpToSettingsSection("settings-access")),
-            settingsSideItem("Logout", activeSection === "settings-logout", "danger", () => jumpToSettingsSection("settings-logout")),
+            settingsSideItem("Logout", false, "danger", confirmLogout),
           ]),
           h("div", { class: "settings-main-panel" }, [
             activeSection === "settings-profile" ? h("article", { class: "settings-profile-card" }, [
@@ -1129,10 +1128,6 @@
                 settingsInfoItem("Status", cap(status)),
               ]),
             ]) : null,
-            activeSection === "settings-security" ? h("article", { class: "settings-detail-card" }, [
-              settingsDetailHead("Password & Security"),
-              h("p", {}, "Password changes and account security controls stay in your profile editor for now."),
-            ]) : null,
             activeSection === "settings-push" ? h("article", { class: "settings-detail-card settings-panel-card push-settings-card" }, [
               pushSettingsPanel(true),
             ]) : null,
@@ -1142,16 +1137,6 @@
             activeSection === "settings-access" ? h("article", { class: "settings-detail-card settings-panel-card access-request-card" }, [
               settingsCardHead(isAdmin() ? "Access Requests" : "Request Access", isAdmin() ? "Review workspace access requests." : "Ask an admin for project or chatter access.", "ShieldCheck"),
               accessRequestsPanel(),
-            ]) : null,
-            activeSection === "settings-logout" ? h("article", { class: "settings-detail-card danger-settings-card" }, [
-              h("div", { class: "settings-logout-compact" }, [
-                h("span", { class: "settings-card-icon" }, [icon("LogOut", 18)]),
-                h("div", {}, [
-                  h("strong", {}, "Sign out of this device"),
-                  h("small", {}, "You will need to sign in again to access this workspace."),
-                ]),
-              ]),
-              h("button", { class: "btn btn-danger btn-block", onclick: confirmLogout }, [icon("LogOut", 16), "Logout"]),
             ]) : null,
           ]),
         ]),
@@ -1306,17 +1291,22 @@
 
   function projectCard(project) {
     return h("article", { class: "project-card" }, [
-      h("div", { class: "project-top" }, [
-        h("div", {}, [h("h3", {}, project.name), h("p", {}, project.description || "")]),
-        h("div", { class: "badge-row" }, [badge(project.status), badge(project.priority, "priority")]),
+      h("div", { class: "project-card-top" }, [
+        h("div", { class: "project-card-mark" }, [icon("FolderKanban", 30)]),
+        h("div", { class: "project-card-heading" }, [
+          h("h3", {}, project.name),
+          h("p", {}, project.description || "No description added."),
+        ]),
+        h("div", { class: "badge-row project-badges" }, [badge(project.status), badge(project.priority, "priority")]),
       ]),
-      h("div", { class: "project-meta" }, [
-        metaItem("Manager", userName(project.manager_id) || "Unassigned"),
-        metaItem("Customer", projectCustomerNames(project)),
-        metaItem("Deadline", project.deadline || "No deadline"),
-        metaItem("Assigned", `${(project.members || []).length} users`),
+      h("div", { class: "project-card-divider" }),
+      h("div", { class: "project-card-stats" }, [
+        projectStat("Manager", userName(project.manager_id) || "Unassigned", "User"),
+        projectStat("Customer", projectCustomerNames(project), "Users"),
+        projectStat("Deadline", project.deadline || "No deadline", "Calendar"),
+        projectStat("Assigned", `${(project.members || []).length} users`, "UsersRound"),
       ]),
-      h("div", { class: "progress-track" }, h("span", { style: `width:${Math.max(0, Math.min(100, project.completion_rate || 0))}%` })),
+      h("div", { class: "project-card-divider" }),
       h("div", { class: "card-actions" }, [
         h("button", { class: "btn btn-soft", onclick: () => openProjectDetails(project) }, [icon("Eye"), "Details"]),
         canManage() ? h("button", { class: "btn btn-soft", onclick: () => openModal("project", project) }, [icon("Edit"), "Edit"]) : null,
@@ -1855,6 +1845,16 @@
         onended: (event) => updateAudioState(file.id, event.currentTarget, { ended: true }),
         onloadedmetadata: (event) => updateAudioState(file.id, event.currentTarget),
       }) : null,
+    ]);
+  }
+
+  function projectStat(label, value, iconName) {
+    return h("div", { class: "project-card-stat" }, [
+      h("span", { class: "project-stat-icon" }, [icon(iconName, 17)]),
+      h("div", {}, [
+        h("small", {}, label),
+        h("strong", {}, value),
+      ]),
     ]);
   }
 
@@ -2703,6 +2703,7 @@
   }
 
   function modalClass(modal) {
+    if (modal.type === "confirm") return "modal confirm-modal";
     if (modal.type === "chatterDetails") return "modal chatter-detail-modal";
     if (modal.type === "projectDetails") return "modal project-detail-modal";
     if (modal.type === "messageInfo") return "modal message-info-modal";
@@ -2754,7 +2755,11 @@
 
   function confirmBody(modal) {
     return h("div", { class: "confirm-body" }, [
-      h("p", {}, modal.message),
+      h("div", { class: "confirm-icon" }, [icon("AlertTriangle", 18)]),
+      h("div", { class: "confirm-copy" }, [
+        h("strong", {}, modal.title || "Confirm"),
+        h("p", {}, modal.message),
+      ]),
       h("div", { class: "modal-actions" }, [
         h("button", { type: "button", class: "btn btn-soft", onclick: closeModal }, "Cancel"),
         h("button", { type: "button", class: "btn btn-danger", onclick: async () => { const fn = modal.action; closeModal(); await fn(); } }, "Confirm"),
