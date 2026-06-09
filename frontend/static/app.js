@@ -1688,7 +1688,6 @@
 
   function messageBubble(message) {
     const own = sameId(message.sender_id, state.user.id);
-    const editing = state.editingMessage && Number(state.editingMessage.id) === Number(message.id);
     const editable = canEditMessage(message);
     const deletedByCurrentUser = Number(message.deleted_by_id) === Number(state.user?.id);
     const hasAttachments = !!(message.attachments && message.attachments.length);
@@ -1712,7 +1711,7 @@
             ]),
           ]),
           message.reply_to_id ? replyPreview(message) : null,
-          editing ? editMessageForm(message) : (bodyText ? h("p", {}, bodyText) : null),
+          bodyText ? h("p", {}, bodyText) : null,
           hasAttachments ? h("div", { class: "attachment-strip" }, message.attachments.map(messageAttachment)) : null,
           h("div", { class: "bubble-footer" }, [
             h("time", {}, stamp),
@@ -1760,20 +1759,20 @@
     return new Date(message.can_edit_until).getTime() > Date.now();
   }
 
-  function editMessageForm(message) {
-    return h("form", { class: "message-edit-form", onsubmit: (event) => saveEditedMessage(event, message) }, [
-      h("textarea", { name: "body", rows: "3", oninput: (event) => { state.editingBody = event.target.value; } }, state.editingBody),
-      h("div", { class: "message-edit-actions" }, [
-        h("button", { type: "button", class: "icon-btn", title: "Cancel edit", "aria-label": "Cancel edit", onclick: cancelEditMessage }, [icon("X", 14)]),
-        h("button", { type: "submit", class: "btn btn-primary compact-btn", title: "Save edit" }, [icon("Check", 14), "Save"]),
-      ]),
-    ]);
-  }
-
   function replyPreview(message) {
     return h("button", { type: "button", class: "reply-preview", onclick: () => scrollToMessage(message.reply_to_id), title: "Referenced message" }, [
       h("strong", {}, message.reply_to_sender_name || userName(message.reply_to_sender_id) || "Message"),
       h("span", {}, message.reply_to_body || "Attachment"),
+    ]);
+  }
+
+  function editComposerPreview() {
+    return h("div", { class: "composer-reply-preview composer-edit-preview" }, [
+      h("span", {}, [
+        h("strong", {}, "Editing message"),
+        h("small", {}, "Save your update from the message bar."),
+      ]),
+      h("button", { type: "button", title: "Cancel edit", "aria-label": "Cancel edit", onclick: cancelEditMessage }, [icon("X", 15)]),
     ]);
   }
 
@@ -1799,6 +1798,9 @@
       render();
       return;
     }
+    state.editingMessage = null;
+    state.editingBody = "";
+    state.composerBody = "";
     state.replyTo = message;
     state.openMessageMenu = null;
     render();
@@ -1822,17 +1824,26 @@
     state.replyTo = null;
     state.editingMessage = message;
     state.editingBody = message.body || "";
+    state.composerBody = message.body || "";
+    state.mention = { open: false, query: "" };
+    clearPendingVoiceNote(false, true);
+    clearPendingAttachment(false, true);
     state.openMessageMenu = null;
     render();
     window.setTimeout(() => {
-      const input = document.querySelector(".message-edit-form textarea");
-      if (input) input.focus();
+      const input = document.querySelector(".composer input[name='body']");
+      if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
     }, 0);
   }
 
   function cancelEditMessage() {
     state.editingMessage = null;
     state.editingBody = "";
+    state.composerBody = "";
+    state.mention = { open: false, query: "" };
     render();
   }
 
@@ -1864,18 +1875,19 @@
       ]);
     }
     return h("form", { class: "composer", onsubmit: sendMessage }, [
+      state.editingMessage ? editComposerPreview() : null,
       state.replyTo ? replyComposerPreview() : null,
       state.voiceRecording ? voiceRecordingBar() : null,
       state.pendingVoicePreviewUrl ? pendingVoicePreview() : null,
       state.pendingAttachment && !state.pendingVoicePreviewUrl ? pendingAttachmentPreview() : null,
-      h("div", { class: "composer-bar mention-anchor" }, [
-        h("label", { class: "file-chip chat-file-chip", title: "Attach file", "aria-label": "Attach file" }, [icon("Paperclip"), h("span", { class: "file-chip-text" }, state.pendingAttachment?.name || "Attach"), h("input", { type: "file", name: "file", onchange: updateAttachmentLabel })]),
+      h("div", { class: state.editingMessage ? "composer-bar mention-anchor editing-composer-bar" : "composer-bar mention-anchor" }, [
+        state.editingMessage ? h("button", { type: "button", class: "file-chip chat-file-chip", title: "Cancel edit", "aria-label": "Cancel edit", onclick: cancelEditMessage }, [icon("X")]) : h("label", { class: "file-chip chat-file-chip", title: "Attach file", "aria-label": "Attach file" }, [icon("Paperclip"), h("span", { class: "file-chip-text" }, state.pendingAttachment?.name || "Attach"), h("input", { type: "file", name: "file", onchange: updateAttachmentLabel })]),
         h("div", { class: "composer-input-wrap" }, [
-          h("input", { name: "body", value: state.composerBody, placeholder: "Your message", autocomplete: "off", oninput: updateComposerText, onkeydown: handleComposerKeydown }),
+          h("input", { name: "body", value: state.composerBody, placeholder: state.editingMessage ? "Edit message" : "Your message", autocomplete: "off", oninput: updateComposerText, onkeydown: handleComposerKeydown }),
         ]),
         state.mention.open ? mentionDropdown(active) : null,
-        voiceButton(active),
-        h("button", { class: "btn btn-primary chat-send-btn", disabled: state.sendingMessage, title: "Send message", "aria-label": "Send message" }, [icon("Send"), h("span", {}, state.sendingMessage ? "Sending..." : "Send")]),
+        state.editingMessage ? null : voiceButton(active),
+        h("button", { class: "btn btn-primary chat-send-btn", disabled: state.sendingMessage, title: state.editingMessage ? "Save edit" : "Send message", "aria-label": state.editingMessage ? "Save edit" : "Send message" }, [icon(state.editingMessage ? "Check" : "Send"), h("span", {}, state.sendingMessage ? "Saving..." : (state.editingMessage ? "Save" : "Send"))]),
       ]),
     ]);
   }
@@ -2484,8 +2496,9 @@
     const nextOpen = query !== null;
     const menuChanged = state.mention.open !== nextOpen || state.mention.query !== (query || "");
     state.composerBody = body;
+    if (state.editingMessage) state.editingBody = body;
     state.mention = { open: nextOpen, query: query || "" };
-    syncTypingState(body.trim().length > 0);
+    if (!state.editingMessage) syncTypingState(body.trim().length > 0);
     if (menuChanged) render();
   }
 
@@ -2503,6 +2516,8 @@
     if (event.key === "Escape" && state.mention.open) {
       state.mention = { open: false, query: "" };
       render();
+    } else if (event.key === "Escape" && state.editingMessage) {
+      cancelEditMessage();
     }
   }
 
@@ -3382,6 +3397,10 @@
       render();
       return;
     }
+    if (state.editingMessage) {
+      await saveEditedMessage(event, state.editingMessage);
+      return;
+    }
     const data = new FormData(event.target);
     const file = state.pendingAttachment || data.get("file");
     const attachmentIds = [];
@@ -3445,6 +3464,8 @@
       if (state.editingMessage && Number(state.editingMessage.id) === Number(id)) {
         state.editingMessage = null;
         state.editingBody = "";
+        state.composerBody = "";
+        state.mention = { open: false, query: "" };
       }
       state.lastMessageSignature = messageSignature(state.messages);
       if (chatterId) {
@@ -3467,20 +3488,24 @@
   }
 
   async function saveEditedMessage(event, message) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     if (!canEditMessage(message)) {
       toast("Message edit window has expired.", "error");
       state.editingMessage = null;
       state.editingBody = "";
+      state.composerBody = "";
       render();
       return;
     }
-    const body = String(state.editingBody || "").trim();
+    const body = String(state.composerBody || state.editingBody || "").trim();
     if (!body) {
       toast("Edited message cannot be empty.", "error");
       render();
       return;
     }
+    state.sendingMessage = true;
+    state.error = "";
+    render();
     try {
       const chatterId = state.activeChatter;
       const updated = await apiClient.put(`/api/messages/${message.id}`, { body });
@@ -3489,6 +3514,8 @@
       state.lastMessageSignature = messageSignature(state.messages);
       state.editingMessage = null;
       state.editingBody = "";
+      state.composerBody = "";
+      state.mention = { open: false, query: "" };
       const current = state.chatters.find((item) => Number(item.id) === Number(updated.chatter_id));
       if (current) current.last_message_preview = updated.body;
       toast("Message updated.", "success");
@@ -3497,6 +3524,7 @@
       state.error = text;
       toast(text, "error");
     } finally {
+      state.sendingMessage = false;
       render();
     }
   }

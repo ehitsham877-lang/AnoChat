@@ -1383,8 +1383,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .email-alert-panel {
   display: grid;
-  gap: 12px;
-  padding-top: 14px;
+  gap: 10px;
+  padding-top: 12px;
   border-top: 1px solid var(--soft-line);
 }
 .access-request-panel {
@@ -3120,33 +3120,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .own .bubble .delete-link:hover {
   background: rgba(255,255,255,.24);
 }
-.message-edit-form {
-  min-width: min(100%, 320px);
-  display: grid;
-  gap: 10px;
-}
-.message-edit-form textarea {
-  width: 100%;
-  min-width: 0;
-  resize: vertical;
-  border: 1px solid rgba(37, 99, 235, .22);
-  border-radius: 14px;
-  padding: 10px 12px;
-  font: inherit;
-  color: var(--text);
-  background: rgba(255,255,255,.92);
-  outline: none;
-}
-.message-edit-form textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(37,99,235,.12);
-}
-.message-edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-}
 .compact-btn {
   min-height: 34px;
   padding: 0 12px;
@@ -3171,6 +3144,10 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-radius: 16px;
   padding: 10px 12px;
   background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+.composer-edit-preview {
+  border-left-color: #22c55e;
+  background: color-mix(in srgb, #22c55e 8%, var(--surface));
 }
 .composer-reply-preview span {
   min-width: 0;
@@ -4285,8 +4262,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .push-settings-panel {
   display: grid;
-  gap: 12px;
-  padding-top: 14px;
+  gap: 10px;
+  padding-top: 12px;
   border-top: 1px solid var(--soft-line);
 }
 .push-settings-panel.standalone {
@@ -4294,26 +4271,58 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-top: 0;
 }
 .settings-panel-card .push-settings-panel.standalone {
-  padding: 22px;
+  padding: 18px;
+}
+.push-settings-panel .account-settings-head {
+  gap: 9px;
+}
+.push-settings-panel .account-settings-head > span {
+  width: 30px;
+  height: 30px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+.push-settings-panel .account-settings-head svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+.push-settings-panel .account-settings-head strong {
+  font-size: 14px;
+  line-height: 1.15;
+}
+.push-settings-panel .account-settings-head small {
+  font-size: 11.5px;
 }
 .push-toggle-row {
   display: flex;
   justify-content: flex-start;
 }
+.push-toggle-row .btn {
+  min-height: 36px;
+  border-radius: 12px;
+  padding: 0 13px;
+  font-size: 13px;
+  box-shadow: none;
+}
 .check-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 9px;
+  padding: 9px 11px;
   border: 1px solid var(--soft-line);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 64%, transparent);
   cursor: pointer;
 }
+.check-row:hover {
+  border-color: color-mix(in srgb, var(--primary) 20%, var(--soft-line));
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+}
 .check-row input {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   margin-top: 2px;
   accent-color: var(--primary);
 }
@@ -4324,7 +4333,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .check-row small {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.35;
 }
 .presence-badge {
@@ -5105,15 +5114,6 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-theme="dark"] .delete-link:hover {
   color: #ffffff;
   background: rgba(248,113,113,.22);
-}
-:root[data-theme="dark"] .message-edit-form textarea {
-  color: #f8fafc;
-  border-color: #334155;
-  background: #172033;
-}
-:root[data-theme="dark"] .message-edit-form textarea:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 4px rgba(96,165,250,.16);
 }
 :root[data-theme="dark"] .composer {
   border-top-color: #263244;
@@ -7298,6 +7298,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   padding: 0;
   border-radius: 15px;
   background: transparent;
+}
+.chat-page .editing-composer-bar {
+  grid-template-columns: 40px minmax(0, 1fr) 50px;
 }
 .chat-page .composer-input-wrap {
   min-width: 0;
