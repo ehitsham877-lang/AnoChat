@@ -5,7 +5,19 @@
     return base;
   }
 
-  const API_BASE = normalizeApiBase(window.API_BASE || "");
+  function defaultApiBase() {
+    const { protocol, hostname, port, origin } = window.location;
+    if (!hostname || origin === "null") return "http://localhost:8000";
+    if (port === "3000" || port === "5173") {
+      const devHost = hostname === "127.0.0.1" ? "127.0.0.1" : "localhost";
+      return `${protocol}//${devHost}:8000`;
+    }
+    return origin;
+  }
+
+  const explicitApiBase = normalizeApiBase(window.API_BASE || "");
+  const API_BASE = explicitApiBase || normalizeApiBase(defaultApiBase());
+  const HAS_EXPLICIT_API_BASE = !!explicitApiBase;
   const TOKEN_KEY = "anochat_token";
   const REQUEST_TIMEOUT_MS = 15000;
 
@@ -26,7 +38,7 @@
       if (err && err.name === "AbortError") {
         throw new Error("Backend request timed out. Check the backend URL and try again.");
       }
-      const missingConfig = !API_BASE && location.hostname.endsWith("vercel.app");
+      const missingConfig = !HAS_EXPLICIT_API_BASE && location.hostname.endsWith("vercel.app");
       throw new Error(missingConfig
         ? "Frontend API URL is missing. Add VERCEL_API_BASE in Vercel and redeploy."
         : "Cannot reach the backend. Check the backend URL and CORS settings.");
@@ -36,7 +48,7 @@
     if (!response.ok) {
       let detail = response.statusText;
       try { detail = (await response.json()).detail || detail; } catch (_) {}
-      if (response.status === 404 && !API_BASE && location.hostname.endsWith("vercel.app")) {
+      if (response.status === 404 && !HAS_EXPLICIT_API_BASE && location.hostname.endsWith("vercel.app")) {
         throw new Error("Frontend is calling Vercel instead of the backend. Add VERCEL_API_BASE in Vercel and redeploy.");
       }
       if (response.status === 404 && path.indexOf("/api/auth/login") === 0) {
