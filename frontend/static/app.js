@@ -1338,10 +1338,16 @@
   function projectsView() {
     return page([
       h("section", { class: "projects-toolbar card" }, [
-        searchBox("Search projects...", "projectSearch"),
-        filterSelect("projectStatus", ["all", "active", "completed"], "Status"),
-        filterSelect("projectPriority", ["all", "low", "normal", "high", "urgent"], "Priority"),
+        h("div", { class: "projects-toolbar-title" }, [
+          h("h2", {}, "Projects"),
+          h("p", {}, "Manage project records, status, priority, ownership, and assignments"),
+        ]),
         canManage() ? h("button", { class: "btn btn-primary projects-new-btn", onclick: () => openModal("project") }, [icon("Plus"), "New Project"]) : null,
+        h("div", { class: "projects-toolbar-controls" }, [
+          searchBox("Search projects...", "projectSearch"),
+          filterSelect("projectStatus", ["all", "active", "completed"], "Status"),
+          filterSelect("projectPriority", ["all", "low", "normal", "high", "urgent"], "Priority"),
+        ]),
       ]),
       h("section", { class: "project-grid" }, filteredProjects().length ? filteredProjects().map(projectCard) : [projectsEmptyState()]),
     ]);
