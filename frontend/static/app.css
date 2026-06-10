@@ -10308,15 +10308,6 @@ svg {
   overscroll-behavior: contain;
 }
 
-.project-modal-form,
-.user-modal-form,
-.role-modal-form,
-.chatter-modal-form {
-  max-height: calc(100svh - 150px);
-  overflow: auto;
-  padding-right: 2px;
-}
-
 .table-wrap,
 .users-table-wrap {
   max-width: 100%;
@@ -10573,6 +10564,8 @@ svg {
   .role-modal-form,
   .chatter-modal-form {
     max-height: calc(100svh - 130px);
+    overflow: auto;
+    padding-right: 2px;
   }
 
   .users-table-footer {
