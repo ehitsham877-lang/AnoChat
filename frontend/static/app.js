@@ -1732,9 +1732,9 @@
     return h("div", { class: own ? "message-row own" : "message-row", id: `message-${message.id}` }, [
       !own ? userAvatar(author, "message-avatar", authorName) : null,
       h("div", { class: "message-stack" }, [
+        showAuthorName ? h("div", { class: "message-author-label" }, authorName) : null,
         h("div", { class: `${message.is_deleted ? "bubble deleted-message" : "bubble"}${hasAttachments ? " attachment-bubble" : ""}${hasAudio ? " voice-bubble" : ""}${showAuthorName ? "" : " no-author"}` }, [
           h("div", { class: "bubble-meta" }, [
-            showAuthorName ? h("strong", {}, authorName) : null,
             h("span", { class: "message-actions" }, [
               messageMenu(message, editable, own),
             ]),
