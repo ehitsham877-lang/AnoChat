@@ -1636,6 +1636,8 @@
     const visibleMembers = state.chatInfoExpanded.members ? members : members.slice(0, memberLimit);
     const visibleImages = state.chatInfoExpanded.images ? images : images.slice(0, imageLimit);
     const visibleDocuments = state.chatInfoExpanded.documents ? documents : documents.slice(0, documentLimit);
+    const linkedProject = chatter.project_id ? state.projects.find((project) => sameId(project.id, chatter.project_id)) : null;
+    const detailsDescription = chatter.description || linkedProject?.description || "No description added.";
     return h("aside", { class: "conversation-details-card chat-info-panel" }, [
       h("button", { type: "button", class: "chat-info-close", title: "Hide details", onclick: () => { state.chatterInfoOpen = false; render(); } }, [icon("X", 16)]),
       h("div", { class: "conversation-details-head" }, [
@@ -1645,7 +1647,7 @@
           h("small", {}, `${members.length} member${members.length === 1 ? "" : "s"}`),
         ]),
       ]),
-      h("p", { class: "conversation-details-desc" }, chatter.description || "No description added."),
+      h("p", { class: "conversation-details-desc" }, detailsDescription),
       h("div", { class: "conversation-info-list" }, [
         h("div", {}, [icon("FolderKanban", 14), h("span", {}, projectName(chatter.project_id) || "General chatter")]),
         h("div", {}, [icon("Calendar", 14), h("span", {}, `Created ${formatDate(chatter.created_at)}`)]),
@@ -3280,6 +3282,7 @@
     const projectReadOnlyIds = (project?.read_only_member_ids || []).filter((id) => !sameId(id, state.user?.id));
     return h("form", { class: "form-grid project-modal-form", onsubmit: (event) => saveProject(event, project) }, [
       h("label", { class: "field form-span" }, [h("span", {}, "Project name"), inputWrap("FolderKanban", h("input", { name: "name", value: project?.name || "", placeholder: "Enter project name", required: true }))]),
+      h("label", { class: "field form-span" }, [h("span", {}, "Description"), inputWrap("MessageSquareText", h("textarea", { name: "description", rows: "3", maxlength: "800", placeholder: "Add a short project description", value: project?.description || "" }))]),
       field("Status", inputWrap("Activity", select("status", ["active", "completed"], project?.status || "active"), h("span", { class: "status-dot active" }))),
       field("Priority", inputWrap("ChevronsUpDown", select("priority", ["low", "normal", "high", "urgent"], project?.priority || "normal"))),
       field("Deadline", inputWrap("Calendar", h("input", { type: "date", name: "deadline", value: project?.deadline || "", placeholder: "mm/dd/yyyy" }))),
@@ -3352,6 +3355,7 @@
       const payload = {
         name: data.name,
         code: project?.code || null,
+        description: String(data.description || "").trim() || null,
         status: data.status,
         priority: data.priority,
         deadline: data.deadline || null,

@@ -5029,14 +5029,29 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   z-index: 40;
 }
 .input-wrap input,
-.input-wrap select {
+.input-wrap select,
+.input-wrap textarea {
   min-height: 46px;
+  width: 100%;
   border: 0;
   padding: 0;
+  color: var(--text);
   background: transparent;
+  font: inherit;
+}
+.input-wrap:has(textarea) {
+  align-items: flex-start;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.input-wrap textarea {
+  min-height: 82px;
+  resize: vertical;
+  line-height: 1.45;
 }
 .input-wrap input:focus,
-.input-wrap select:focus { outline: none; }
+.input-wrap select:focus,
+.input-wrap textarea:focus { outline: none; }
 .readonly-field {
   min-height: 46px;
   display: flex;

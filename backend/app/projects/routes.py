@@ -44,7 +44,7 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db), curren
         + ([project.manager_id] if project.manager_id else [])
         + ([project.customer_id] if project.customer_id else [])
     )
-    chatter = Chatter(name=project.name, project_id=project.id, created_by_id=current_user.id)
+    chatter = Chatter(name=project.name, description=project.description, project_id=project.id, created_by_id=current_user.id)
     db.add(chatter)
     db.flush()
     set_chatter_members(db, chatter, list(chatter_member_ids), read_only_member_ids)
