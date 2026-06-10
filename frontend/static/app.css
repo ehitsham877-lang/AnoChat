@@ -8685,6 +8685,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 :root[data-tab="settings"],
 :root[data-tab="settings"] body,
 :root[data-tab="settings"] .main-shell {
+  height: 100svh;
+  overflow: hidden;
   background:
     radial-gradient(circle at 90% 12%, rgba(37, 99, 235, .10), transparent 380px),
     linear-gradient(145deg, #07111f, #020617 72%);
@@ -8693,18 +8695,24 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .settings-page {
   width: 100%;
   max-width: none;
-  min-height: 100svh;
+  height: 100svh;
+  min-height: 0;
   margin-inline: 0;
-  padding: 22px 28px 30px;
+  padding: 20px 28px;
+  overflow: hidden;
   background:
     radial-gradient(circle at 92% 8%, rgba(37, 99, 235, .12), transparent 360px),
     linear-gradient(145deg, #07111f, #020617 70%);
 }
 
 .settings-shell {
-  gap: 26px;
-  min-height: calc(100svh - 52px);
-  padding: 22px 28px 28px;
+  width: min(100%, 1500px);
+  height: calc(100svh - 40px);
+  min-height: 0;
+  margin-inline: auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 20px;
+  padding: 22px 28px 24px;
   border: 1px solid rgba(148, 163, 184, .16);
   border-radius: 28px;
   background:
@@ -8714,8 +8722,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 
 .settings-topbar {
-  min-height: 80px;
-  padding: 18px 28px;
+  min-height: 74px;
+  padding: 14px 28px;
   border: 1px solid rgba(148, 163, 184, .15);
   border-radius: 22px;
   background: rgba(15, 23, 42, .66);
@@ -8783,15 +8791,17 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 
 .settings-title {
-  margin: 0 0 6px;
+  margin: 0;
   color: #f8fafc;
-  font-size: 30px;
+  font-size: 29px;
   font-weight: 850;
 }
 
 .settings-layout {
   grid-template-columns: 330px minmax(0, 1fr);
-  min-height: calc(100svh - 230px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   border-color: rgba(148, 163, 184, .14);
   border-radius: 28px;
   background: rgba(15, 23, 42, .50);
@@ -8800,13 +8810,13 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 
 .settings-side-menu {
   gap: 16px;
-  padding: 28px;
+  padding: 26px 28px;
   border-right-color: rgba(148, 163, 184, .12);
   background: linear-gradient(180deg, rgba(15, 23, 42, .18), rgba(15, 23, 42, .04));
 }
 
 .settings-side-menu button {
-  min-height: 68px;
+  min-height: 64px;
   gap: 18px;
   padding: 0 26px;
   border: 1px solid transparent;
@@ -8847,13 +8857,14 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 
 .settings-main-panel {
-  gap: 26px;
-  padding: 28px 34px 38px;
+  gap: 22px;
+  padding: 26px 34px;
+  overflow: auto;
 }
 
 .settings-profile-card,
 .settings-detail-card {
-  padding: 34px;
+  padding: 30px 34px;
   border-color: rgba(148, 163, 184, .14);
   border-radius: 24px;
   background:
@@ -8867,13 +8878,13 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 
 .settings-profile-content {
-  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-columns: 76px minmax(0, 1fr);
   gap: 24px;
 }
 
 .settings-profile-avatar {
-  width: 84px;
-  height: 84px;
+  width: 76px;
+  height: 76px;
   border: 0;
   box-shadow: 0 16px 34px rgba(0, 0, 0, .24);
 }
@@ -8937,7 +8948,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 
 .settings-info-item {
-  min-height: 92px;
+  min-height: 84px;
   justify-content: center;
   gap: 10px;
   border-bottom: 1px solid rgba(148, 163, 184, .12);
