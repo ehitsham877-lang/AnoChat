@@ -540,7 +540,6 @@
     return h("aside", { class: "sidebar" }, [
       h("div", { class: "sidebar-head" }, [
         h("div", { class: "sidebar-brand" }, [h("span", { class: "sidebar-logo" }, [icon("MessageCircle", 24)]), h("span", { class: "brand-text" }, "AnoChat")]),
-        h("button", { class: "sidebar-collapse desktop-only", onclick: toggleSidebar, title: "Collapse sidebar" }, [icon(state.sidebarCollapsed ? "ChevronRight" : "ChevronLeft", 18)]),
       ]),
       h("nav", { class: "nav-list" }, [
         ...primaryNav.map((item) => h("button", {
