@@ -6172,9 +6172,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .dashboard-project-list { display: grid; align-content: start; gap: 10px; }
 .dashboard-project-row {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) 98px 98px minmax(112px, auto);
+  grid-template-columns: 14px minmax(0, 1fr) minmax(164px, auto) minmax(112px, auto);
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   min-height: 64px;
   padding: 14px 18px;
   border: 1px solid color-mix(in srgb, var(--line) 62%, transparent);
@@ -6202,7 +6202,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .dashboard-project-row > div:first-of-type small { display: none; }
 .dashboard-project-row .badge-row {
   justify-content: center;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 .dashboard-project-row .badge-row .badge {
   min-width: 76px;
