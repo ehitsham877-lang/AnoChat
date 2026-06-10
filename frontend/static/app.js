@@ -141,6 +141,7 @@
   function icon(name, size) {
     const map = {
       Activity: '<path d="M22 12h-4l-3 8L9 4l-3 8H2"/>',
+      Ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
       Bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
       BellOff: '<path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.99 5.99 0 0 0 6 8c0 7-3 7-3 9h14"/><path d="m2 2 20 20"/>',
       Boxes: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
@@ -172,6 +173,7 @@
       Moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
       Paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.49-8.48"/>',
       Pause: '<rect width="4" height="16" x="6" y="4" rx="1"/><rect width="4" height="16" x="14" y="4" rx="1"/>',
+      Pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
       Play: '<polygon points="6 3 20 12 6 21 6 3"/>',
       Plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
       RadioTower: '<path d="M4.9 16.1a10 10 0 0 1 0-8.2"/><path d="M7.8 13.2a5 5 0 0 1 0-4.4"/><circle cx="12" cy="11" r="2"/><path d="m12 13 4 8"/><path d="m12 13-4 8"/><path d="M16.2 13.2a5 5 0 0 0 0-4.4"/><path d="M19.1 16.1a10 10 0 0 0 0-8.2"/>',
@@ -187,6 +189,7 @@
       Square: '<rect width="14" height="14" x="5" y="5" rx="2"/>',
       Sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
       Trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/>',
+      Trash2: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="m19 6-1 14H6L5 6"/>',
       UserPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/>',
       UserRound: '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
       UsersRound: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -2838,7 +2841,7 @@
       ]),
       h("div", { class: "badge-row" }, roles(user).map((role) => badge(role, "role"))),
       userStatusBadge(user),
-      formatDate(user.created_at),
+      userCreatedAt(user.created_at),
       isAdmin() ? h("div", { class: "row-actions" }, [
         h("button", { class: "btn btn-outline action-role", title: "Edit user", "aria-label": `Edit ${user.name || "user"}`, onclick: () => openModal("role", user) }, [icon("Pencil", 17), h("span", {}, "Edit")]),
         user.id !== state.user.id && user.active ? h("button", { class: "btn btn-danger action-danger", title: "Deactivate user", "aria-label": `Deactivate ${user.name || "user"}`, onclick: () => confirmAction("Deactivate user?", "The user will no longer be active.", () => disableUser(user.id)) }, [icon("Ban", 17), h("span", {}, "Deactivate")]) : null,
@@ -2854,10 +2857,26 @@
     return h("span", { class: `presence-badge presence-${status}` }, [h("i"), cap(status)]);
   }
 
+  function userCreatedAt(value) {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return h("span", { class: "user-created-stack" }, [h("strong", {}, "Unknown")]);
+    return h("span", { class: "user-created-stack" }, [
+      h("strong", {}, date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })),
+      h("small", {}, date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })),
+    ]);
+  }
+
   function usersTable(users) {
     return h("div", { class: "table-wrap users-table-wrap" }, [h("table", { class: "users-table" }, [
       h("thead", {}, h("tr", {}, ["User", "Role", "Status", "Created", "Actions"].map((head) => h("th", {}, head)))),
       h("tbody", {}, users.map((user) => h("tr", {}, userRow(user).map((cell, i) => h("td", { "data-label": ["User", "Role", "Status", "Created", "Actions"][i] }, cell))))),
+    ]), h("div", { class: "users-table-footer" }, [
+      h("span", {}, `Showing 1 to ${users.length} of ${users.length} users`),
+      h("div", { class: "users-pagination", "aria-hidden": "true" }, [
+        h("span", {}, [icon("ChevronLeft", 16)]),
+        h("strong", {}, "1"),
+        h("span", {}, [icon("ChevronRight", 16)]),
+      ]),
     ])]);
   }
 
