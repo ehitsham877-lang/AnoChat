@@ -35,6 +35,15 @@
 
 * { box-sizing: border-box; }
 html, body { width: 100%; min-height: 100%; margin: 0; overflow-x: hidden; background: var(--bg); color: var(--text); }
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
 @media (min-width: 861px) {
   :root[data-tab="chatters"],
   :root[data-tab="chatters"] body {
@@ -3850,11 +3859,15 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   background: var(--surface-2);
 }
 .users-toolbar .filter-select {
+  grid-template-columns: auto minmax(0, 1fr);
   min-height: 56px;
   padding: 8px 12px;
   border-color: color-mix(in srgb, var(--line) 72%, transparent);
   border-radius: 14px;
   background: var(--surface-2);
+}
+.users-toolbar .filter-select > .icon {
+  display: none;
 }
 .users-toolbar .filter-select > span {
   font-size: 11px;
@@ -3995,6 +4008,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   font-weight: 850;
   vertical-align: middle;
 }
+.users-table .presence-avatar::after {
+  display: none;
+}
 .user-created-stack {
   display: grid;
   gap: 5px;
@@ -4053,7 +4069,7 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 0 0;
+  padding: 18px 24px;
   color: var(--muted);
   font-size: 14px;
 }
