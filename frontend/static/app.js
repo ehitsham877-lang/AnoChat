@@ -1,5 +1,6 @@
 ﻿(function () {
   const app = document.getElementById("app");
+  const USERS_PAGE_SIZE = 6;
   const navItems = [
     { key: "dashboard", label: "Dashboard", icon: "LayoutGrid" },
     { key: "projects", label: "Projects", icon: "BriefcaseBusiness" },
@@ -32,6 +33,7 @@
     pushConfig: null,
     notificationPreferences: null,
     pushBusy: false,
+    userPage: 1,
     presenceOpen: false,
     presenceSyncTimer: null,
     messageSyncTimer: null,
@@ -2882,17 +2884,29 @@
   }
 
   function usersTable(users) {
+    const total = users.length;
+    const totalPages = Math.max(1, Math.ceil(total / USERS_PAGE_SIZE));
+    const currentPage = Math.min(Math.max(1, state.userPage || 1), totalPages);
+    if (currentPage !== state.userPage) state.userPage = currentPage;
+    const startIndex = total ? (currentPage - 1) * USERS_PAGE_SIZE : 0;
+    const endIndex = Math.min(startIndex + USERS_PAGE_SIZE, total);
+    const pageUsers = users.slice(startIndex, endIndex);
     return h("div", { class: "table-wrap users-table-wrap" }, [h("table", { class: "users-table" }, [
       h("thead", {}, h("tr", {}, ["User", "Role", "Status", "Created", "Actions"].map((head) => h("th", {}, head)))),
-      h("tbody", {}, users.map((user) => h("tr", {}, userRow(user).map((cell, i) => h("td", { "data-label": ["User", "Role", "Status", "Created", "Actions"][i] }, cell))))),
+      h("tbody", {}, pageUsers.map((user) => h("tr", {}, userRow(user).map((cell, i) => h("td", { "data-label": ["User", "Role", "Status", "Created", "Actions"][i] }, cell))))),
     ]), h("div", { class: "users-table-footer" }, [
-      h("span", {}, `Showing 1 to ${users.length} of ${users.length} users`),
-      h("div", { class: "users-pagination", "aria-hidden": "true" }, [
-        h("span", {}, [icon("ChevronLeft", 16)]),
-        h("strong", {}, "1"),
-        h("span", {}, [icon("ChevronRight", 16)]),
+      h("span", {}, total ? `Showing ${startIndex + 1} to ${endIndex} of ${total} users` : "Showing 0 users"),
+      h("div", { class: "users-pagination" }, [
+        h("button", { type: "button", disabled: currentPage <= 1, "aria-label": "Previous users page", onclick: () => changeUsersPage(currentPage - 1) }, [icon("ChevronLeft", 16)]),
+        h("strong", {}, String(currentPage)),
+        h("button", { type: "button", disabled: currentPage >= totalPages, "aria-label": "Next users page", onclick: () => changeUsersPage(currentPage + 1) }, [icon("ChevronRight", 16)]),
       ]),
     ])]);
+  }
+
+  function changeUsersPage(page) {
+    state.userPage = page;
+    render();
   }
 
   function usersEmptyState() {
@@ -3983,6 +3997,7 @@
         "data-search-key": key,
         oninput: (e) => {
           state.filters[key] = e.target.value;
+          if (key.startsWith("user")) state.userPage = 1;
           render();
         },
       }),
@@ -3995,7 +4010,11 @@
       dropdown({
         value: state.filters[key],
         items: values.map((value) => ({ value, label: cap(value) })),
-        onChange: (value) => { state.filters[key] = value; render(); },
+        onChange: (value) => {
+          state.filters[key] = value;
+          if (key.startsWith("user")) state.userPage = 1;
+          render();
+        },
       }),
     ]);
   }
