@@ -3219,7 +3219,6 @@
         projectDetailStat("Manager", userName(freshProject.manager_id) || "Unassigned", "UserRound"),
         projectDetailStat("Customer", projectCustomerNames(freshProject), "Users"),
         projectDetailStat("Deadline", freshProject.deadline || "No deadline", "Calendar"),
-        projectDetailStat("Progress", `${Math.round(freshProject.completion_rate || 0)}%`, "Activity"),
       ]),
       h("section", { class: "project-detail-section" }, [
         h("div", { class: "project-detail-section-head" }, [h("h4", {}, "Assigned members"), h("span", {}, `${members.length}`)]),
