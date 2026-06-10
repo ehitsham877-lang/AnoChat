@@ -147,6 +147,7 @@
       Boxes: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
       BriefcaseBusiness: '<path d="M12 12h.01"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M22 13.5V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v5.5"/><path d="M2 13.5V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4.5"/><path d="M2 13.5c6.5 3 13.5 3 20 0"/>',
       Calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+      Camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/>',
       ChartSpline: '<path d="M3 3v18h18"/><path d="M7 16c1.6-5 4-6 6.6-2.6C16 16.5 18 15 20 9"/>',
       Check: '<path d="M20 6 9 17l-5-5"/>',
       ChevronLeft: '<path d="m15 18-6-6 6-6"/>',
@@ -159,6 +160,7 @@
       HelpCircle: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/>',
       Image: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
       Lock: '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      LockKeyhole: '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/>',
       LoaderCircle: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
       LayoutDashboard: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
       LayoutGrid: '<rect width="7" height="7" x="3" y="3" rx="1.5"/><rect width="7" height="7" x="14" y="3" rx="1.5"/><rect width="7" height="7" x="14" y="14" rx="1.5"/><rect width="7" height="7" x="3" y="14" rx="1.5"/>',
@@ -1181,10 +1183,10 @@
         h("h1", { class: "settings-title" }, "Account Settings"),
         h("div", { class: "settings-layout" }, [
           h("aside", { class: "settings-side-menu", "aria-label": "Settings sections" }, [
-            settingsSideItem("My Profile", activeSection === "settings-profile", null, () => jumpToSettingsSection("settings-profile")),
-            settingsSideItem("Push notifications", activeSection === "settings-push", null, () => jumpToSettingsSection("settings-push")),
-            settingsSideItem(isAdmin() ? "Access Requests" : "Request Access", activeSection === "settings-access", null, () => jumpToSettingsSection("settings-access")),
-            settingsSideItem("Logout", false, "danger", confirmLogout),
+            settingsSideItem("My Profile", "UserRound", activeSection === "settings-profile", null, () => jumpToSettingsSection("settings-profile")),
+            settingsSideItem("Push notifications", "Bell", activeSection === "settings-push", null, () => jumpToSettingsSection("settings-push")),
+            settingsSideItem(isAdmin() ? "Access Requests" : "Request Access", "LockKeyhole", activeSection === "settings-access", null, () => jumpToSettingsSection("settings-access")),
+            settingsSideItem("Logout", "LogOut", false, "danger", confirmLogout),
           ]),
           h("div", { class: "settings-main-panel" }, [
             activeSection === "settings-profile" ? h("article", { class: "settings-profile-card" }, [
@@ -1201,7 +1203,7 @@
                   type: "button",
                   class: "settings-photo-btn",
                   onclick: () => document.getElementById("settings-photo-input")?.click(),
-                }, [icon("Image", 16), state.user?.avatar_attachment_id ? "Change photo" : "Add photo"]),
+                }, [icon("Camera", 16), state.user?.avatar_attachment_id ? "Change photo" : "Add photo"]),
                 settingsEditButton(() => openModal("profile", state.user)),
               ]),
               h("input", {
@@ -1240,12 +1242,12 @@
     ], "settings-page");
   }
 
-  function settingsSideItem(label, active, tone, onClick) {
+  function settingsSideItem(label, iconName, active, tone, onClick) {
     return h("button", {
       type: "button",
       class: `${active ? "active " : ""}${tone === "danger" ? "danger" : ""}`.trim(),
       onclick: onClick,
-    }, label);
+    }, [icon(iconName, 20), h("span", {}, label)]);
   }
 
   function jumpToSettingsSection(id) {
