@@ -1204,7 +1204,7 @@
                   class: "settings-photo-btn",
                   onclick: () => document.getElementById("settings-photo-input")?.click(),
                 }, [icon("Camera", 16), state.user?.avatar_attachment_id ? "Change photo" : "Add photo"]),
-                settingsEditButton(() => openModal("profile", state.user)),
+                settingsEditButton(openSettingsUserEdit),
               ]),
               h("input", {
                 id: "settings-photo-input",
@@ -1219,7 +1219,7 @@
               }),
             ]) : null,
             activeSection === "settings-profile" ? h("article", { class: "settings-detail-card" }, [
-              settingsDetailHead("Personal Information", () => openModal("profile", state.user)),
+              settingsDetailHead("Personal Information"),
               h("div", { class: "settings-info-grid" }, [
                 settingsInfoItem("First Name", firstName, "UserRound"),
                 settingsInfoItem("Last Name", lastName, "UserRound"),
@@ -1253,6 +1253,11 @@
   function jumpToSettingsSection(id) {
     state.settingsSection = id || "settings-profile";
     render();
+  }
+
+  function openSettingsUserEdit() {
+    const current = state.users.find((item) => sameId(item.id, state.user?.id)) || state.user;
+    openModal(isAdmin() ? "role" : "profile", current);
   }
 
   function settingsEditButton(onClick) {
