@@ -7635,20 +7635,45 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   bottom: calc(100% + 8px);
 }
 .chat-page .chat-info-panel {
-  padding: 18px;
+  padding: 22px 18px;
   overflow: auto;
+  align-content: start;
+  gap: 0;
 }
 .chat-page .chat-info-close {
   display: none;
 }
 .chat-page .chat-info-panel .conversation-details-head {
-  padding: 0 0 12px;
+  padding: 4px 10px 18px;
+  border-bottom: 1px solid rgba(226, 232, 240, .72);
 }
 .chat-page .chat-info-panel .conversation-details-avatar {
-  width: 58px;
-  height: 58px;
+  width: 62px;
+  height: 62px;
   border-radius: 999px;
-  box-shadow: none;
+  background: linear-gradient(135deg, #2385f4, #13a6b8);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, .13);
+}
+.chat-page .chat-info-panel .conversation-details-head strong {
+  margin-top: 10px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.chat-page .chat-info-panel .conversation-details-head small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+.chat-page .conversation-details-desc {
+  margin: 14px 6px 4px;
+  padding: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
 }
 .chat-page .conversation-info-list,
 .chat-page .chat-info-actions {
@@ -7656,9 +7681,11 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .chat-page .chat-info-section-title {
   justify-content: space-between;
-  margin: 18px 0 8px;
+  margin: 24px 0 10px;
+  padding-top: 2px;
   color: #111827;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 800;
 }
 .chat-page .chat-info-section-title .icon {
   display: none;
@@ -7666,18 +7693,64 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 .chat-page .conversation-detail-member,
 .chat-page .conversation-details-files button {
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
-  padding: 6px 0;
+  padding: 7px 2px;
+}
+.chat-page .conversation-detail-member {
+  gap: 10px;
+}
+.chat-page .chat-info-panel .conversation-detail-member .member-mini-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  box-shadow: none;
+}
+.chat-page .conversation-detail-member strong,
+.chat-page .conversation-details-files strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 750;
+}
+.chat-page .conversation-detail-member small,
+.chat-page .conversation-details-files small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
 }
 .chat-page .chat-info-media-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 .chat-page .chat-info-media-grid button {
   border: 0;
-  border-radius: 10px;
-  background: #f3f4f6;
+  border-radius: 14px;
+  background: #f8fafc;
+  box-shadow: inset 0 0 0 1px rgba(226, 232, 240, .72);
+}
+.chat-page .chat-info-image {
+  border-radius: 14px;
+}
+.chat-page .conversation-details-files {
+  gap: 8px;
+}
+.chat-page .conversation-details-files button {
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 48px;
+  padding: 7px 2px;
+}
+.chat-page .chat-info-panel .conversation-details-files .file-type-badge {
+  width: 32px;
+  height: 38px;
+  border-radius: 8px;
+}
+.chat-page .conversation-details-empty {
+  padding: 14px 10px;
+  border: 1px dashed rgba(203, 213, 225, .9);
+  border-radius: 14px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 12px;
 }
 
 :root[data-theme="dark"] .chat-page .chat-info-panel,
@@ -7706,6 +7779,25 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 :root[data-theme="dark"] .chat-page .chat-info-media-grid button {
   color: #cbd5e1;
+  background: #172033;
+}
+:root[data-theme="dark"] .chat-page .chat-info-panel .conversation-details-head {
+  border-bottom-color: #263244;
+}
+:root[data-theme="dark"] .chat-page .chat-info-panel .conversation-details-head strong,
+:root[data-theme="dark"] .chat-page .conversation-detail-member strong,
+:root[data-theme="dark"] .chat-page .conversation-details-files strong {
+  color: #f8fafc;
+}
+:root[data-theme="dark"] .chat-page .chat-info-panel .conversation-details-head small,
+:root[data-theme="dark"] .chat-page .conversation-detail-member small,
+:root[data-theme="dark"] .chat-page .conversation-details-files small,
+:root[data-theme="dark"] .chat-page .conversation-details-desc {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .chat-page .conversation-details-empty {
+  color: #94a3b8;
+  border-color: #334155;
   background: #172033;
 }
 :root[data-theme="dark"] .chat-page .composer {
