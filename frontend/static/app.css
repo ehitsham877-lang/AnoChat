@@ -10883,3 +10883,237 @@ svg {
     max-height: calc(100svh - 96px);
   }
 }
+
+/* Final mobile polish: keep desktop intact, fix narrow Chatter and Users layouts. */
+@media (max-width: 860px) {
+  .workspace-shell,
+  .workspace-shell.collapsed {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .main-shell,
+  .collapsed .main-shell {
+    width: 100%;
+    max-width: 100vw;
+    margin-left: 0 !important;
+    overflow-x: hidden;
+  }
+
+  .sidebar {
+    z-index: 30;
+  }
+
+  .mobile-menu-trigger {
+    z-index: 35;
+  }
+
+  .mobile-open .mobile-scrim {
+    z-index: 24;
+  }
+
+  .chat-page {
+    width: 100%;
+    max-width: 100vw;
+    padding: 10px;
+  }
+
+  .chat-page .chat-shell,
+  .chat-page .chat-shell.info-open,
+  :root[data-theme="dark"] .chat-page .chat-shell,
+  :root[data-theme="dark"] .chat-page .chat-shell:not(.info-open),
+  :root:not([data-theme="dark"]) .chat-page .chat-shell {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    overflow: visible;
+  }
+
+  .chat-page .conversation-panel,
+  :root[data-theme="dark"] .chat-page .conversation-panel,
+  :root:not([data-theme="dark"]) .chat-page .conversation-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: none;
+    min-height: 0;
+    padding: 18px;
+    overflow: visible;
+  }
+
+  .chat-page .conversation-list {
+    max-height: 36svh;
+    overflow: auto;
+    padding-right: 2px;
+  }
+
+  .chat-page .conversation {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .chat-page .conversation-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
+  }
+
+  .chat-page .conversation-title-row strong {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chat-page .conversation-project {
+    display: none;
+  }
+
+  .chat-page .conversation-row-meta {
+    margin-left: 0;
+    min-width: 42px;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .chat-page .conversation-preview-row small {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chat-page .chat-head,
+  :root[data-theme="dark"] .chat-page .chat-head,
+  :root:not([data-theme="dark"]) .chat-page .chat-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 82px;
+    padding: 16px;
+  }
+
+  .chat-page .chat-header-identity,
+  .chat-page .chat-title-block,
+  .chat-page .chat-title-row {
+    min-width: 0;
+  }
+
+  .chat-page .chat-title-row h2 {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chat-page .chat-head-actions {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .users-card {
+    padding: 10px;
+  }
+
+  .users-table-wrap,
+  .table-wrap.users-table-wrap {
+    overflow-x: hidden;
+  }
+
+  .users-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .users-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .users-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+    margin: 0;
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+  }
+
+  .users-table tbody td,
+  .users-table tbody td:first-child,
+  .users-table tbody td:last-child {
+    min-height: 0;
+    height: auto;
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .users-table tbody td::before {
+    min-width: 0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .users-table .user-person {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .users-table .user-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .users-table .user-name-stack {
+    min-width: 0;
+  }
+
+  .users-table .user-name-stack small {
+    max-width: min(220px, calc(100vw - 180px));
+  }
+
+  .users-table .presence-badge,
+  .users-table .badge.status,
+  .users-table .badge.role {
+    width: max-content;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+  }
+
+  .users-table .row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .users-table .row-actions .btn {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 12px;
+  }
+
+  .users-table-footer {
+    padding: 14px 4px 4px;
+  }
+}
