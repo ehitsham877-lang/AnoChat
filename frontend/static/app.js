@@ -9,10 +9,36 @@
     { key: "users", label: "Users & Roles", icon: "UsersRound" },
     { key: "settings", label: "Settings", icon: "Settings2" },
   ];
+  const DEFAULT_THEME = "light";
+
+  function normalizeTheme(theme) {
+    return theme === "dark" ? "dark" : DEFAULT_THEME;
+  }
+
+  function userThemeKey(user) {
+    const userId = user?.id || user?.email || user?.login;
+    return userId ? `anochat_theme_${userId}` : "anochat_theme";
+  }
+
+  function storedThemeForUser(user) {
+    return normalizeTheme(localStorage.getItem(userThemeKey(user)));
+  }
+
+  function applyUserThemePreference(user) {
+    state.theme = storedThemeForUser(user);
+    localStorage.setItem("anochat_theme", state.theme);
+  }
+
+  function saveThemePreference(theme) {
+    const normalized = normalizeTheme(theme);
+    state.theme = normalized;
+    localStorage.setItem("anochat_theme", normalized);
+    if (state.user) localStorage.setItem(userThemeKey(state.user), normalized);
+  }
 
   const state = {
     tab: localStorage.getItem("anochat_tab") || "dashboard",
-    theme: localStorage.getItem("anochat_theme") || "light",
+    theme: normalizeTheme(localStorage.getItem("anochat_theme")),
     sidebarCollapsed: localStorage.getItem("anochat_sidebar") === "collapsed",
     mobileSidebarOpen: false,
     bootstrapping: !!apiClient.token(),
@@ -728,6 +754,7 @@
       const result = await apiClient.post("/api/auth/login", payload);
       apiClient.setToken(result.access_token);
       state.user = result.user;
+      applyUserThemePreference(state.user);
       state.tab = "dashboard";
       clearActiveChatter();
       localStorage.setItem("anochat_tab", "dashboard");
@@ -770,6 +797,7 @@
       clearActiveChatter();
       revokeAllAvatarPreviews();
       Object.assign(state, {
+        theme: DEFAULT_THEME,
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, accessRequestDraft: { resourceType: "project", resourceId: "", message: "" }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingAttachmentPreviewUrl: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
@@ -777,6 +805,7 @@
         chatInfoExpanded: { members: false, images: false, documents: false },
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile",
       });
+      localStorage.setItem("anochat_theme", DEFAULT_THEME);
     });
   }
 
@@ -822,8 +851,7 @@
   }
 
   function toggleTheme() {
-    state.theme = state.theme === "dark" ? "light" : "dark";
-    localStorage.setItem("anochat_theme", state.theme);
+    saveThemePreference(state.theme === "dark" ? "light" : "dark");
     render();
   }
 
@@ -944,6 +972,7 @@
         apiClient.get("/api/notifications"),
       ]);
       state.user = me;
+      applyUserThemePreference(state.user);
       state.users = users;
       state.chatters = chatters;
       state.notifications = notifications;
@@ -970,6 +999,7 @@
     render();
     try {
       state.user = await apiClient.get("/api/auth/me");
+      applyUserThemePreference(state.user);
       if (!availableNavItems().some((item) => item.key === state.tab)) {
         state.tab = "dashboard";
         localStorage.setItem("anochat_tab", state.tab);
@@ -993,12 +1023,14 @@
       resetChatterAudioState();
       revokeAllAvatarPreviews();
       Object.assign(state, {
+        theme: DEFAULT_THEME,
         user: null, users: [], projects: [], chatters: [], messages: [], notifications: [], notificationHistory: [], accessRequests: [], accessRequestOptions: { projects: [], chatters: [] }, accessRequestDraft: { resourceType: "project", resourceId: "", message: "" }, files: [], typingUsers: [],
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingAttachmentPreviewUrl: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
         lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile",
       });
+      localStorage.setItem("anochat_theme", DEFAULT_THEME);
       toast(err.message || "Could not restore your session. Please sign in again.", "error");
     } finally {
       state.bootstrapping = false;
