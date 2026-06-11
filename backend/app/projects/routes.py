@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.service import get_current_user
 from app.activity_logs.service import log_activity
-from app.common import get_or_404, project_access_ids, read_only_project_member_ids, revoke_user_sessions, set_chatter_members, set_project_members, sync_linked_chatters_from_project
+from app.common import get_or_404, project_access_ids, read_only_project_member_ids, set_chatter_members, set_project_members, sync_linked_chatters_from_project
 from app.database import get_db
 from app.models import ActivityLog, Attachment, Chatter, EmailLog, Project, User
 from app.notifications.service import create_notification
@@ -121,7 +121,8 @@ def update_project(project_id: int, payload: ProjectUpdate, db: Session = Depend
         removed_from_chatters = sync_linked_chatters_from_project(db, project, next_member_ids, next_read_only_member_ids)
         current_access_ids = project_access_ids(project)
         revoked_user_ids = (previous_access_ids | removed_from_chatters) - current_access_ids - {current_user.id}
-        revoke_user_sessions(db, revoked_user_ids)
+        for user_id in revoked_user_ids:
+            create_notification(db, user_id, "Project access removed", f"You are no longer a member of {project.name}.")
     log_activity(db, "project_updated", f"{current_user.name} updated project {project.name}.", current_user.id, project_id=project.id)
     db.commit()
     db.refresh(project)

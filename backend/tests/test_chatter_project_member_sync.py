@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.chatters.routes import create_chatter, create_message, list_chatters, update_chatter
 from app.database import Base
-from app.models import Chatter, Project, Role, User
+from app.models import Chatter, Notification, Project, Role, User
 from app.projects.routes import get_project, list_projects, update_project
 from app.schemas import ChatterCreate, ChatterUpdate, MessageCreate, ProjectUpdate
 
@@ -110,6 +110,36 @@ def test_chatter_update_removes_members_from_linked_project(db):
     project_member_ids = {user.id for user in project.members}
     assert project_member_ids == {admin.id, kept_member.id}
     assert list_projects(db=db, current_user=removed_member) == []
+    assert db.query(Notification).filter(Notification.user_id == removed_member.id, Notification.title == "Removed from chatter").count() == 1
+
+
+def test_chatter_update_replaces_project_members_even_with_stale_linked_chatter(db):
+    admin = add_user(db, "Admin", "admin@example.com", "admin")
+    kept_member = add_user(db, "Kept", "kept@example.com")
+    removed_member = add_user(db, "Removed", "removed@example.com")
+    project = add_project(db)
+    active_chatter = Chatter(name="Primary project chat", project_id=project.id, created_by_id=admin.id)
+    stale_chatter = Chatter(name="Stale project chat", project_id=project.id, created_by_id=admin.id)
+    db.add_all([active_chatter, stale_chatter])
+    db.flush()
+    active_chatter.members = [admin, kept_member, removed_member]
+    stale_chatter.members = [admin, removed_member]
+    project.members = [admin, kept_member, removed_member]
+    db.commit()
+
+    update_chatter(
+        active_chatter.id,
+        ChatterUpdate(member_ids=[admin.id, kept_member.id]),
+        db=db,
+        current_user=admin,
+    )
+
+    db.refresh(project)
+    db.refresh(active_chatter)
+    assert {user.id for user in active_chatter.members} == {admin.id, kept_member.id}
+    assert {user.id for user in project.members} == {admin.id, kept_member.id}
+    assert list_projects(db=db, current_user=removed_member) == []
+    assert list_chatters(db=db, current_user=removed_member) == []
 
 
 def test_stale_project_members_do_not_grant_chatter_access(db):
@@ -131,7 +161,7 @@ def test_stale_project_members_do_not_grant_chatter_access(db):
     assert removed_member.id in {user.id for user in project.members}
 
 
-def test_project_update_removes_member_from_linked_chatter_and_revokes_session(db):
+def test_project_update_removes_member_from_linked_chatter_and_blocks_access(db):
     admin = add_user(db, "Admin", "admin@example.com", "admin")
     kept_member = add_user(db, "Kept", "kept@example.com")
     removed_member = add_user(db, "Removed", "removed@example.com")
@@ -154,7 +184,7 @@ def test_project_update_removes_member_from_linked_chatter_and_revokes_session(d
     db.refresh(chatter)
     assert {user.id for user in project.members} == {admin.id, kept_member.id}
     assert {user.id for user in chatter.members} == {admin.id, kept_member.id}
-    assert removed_member.active_session_version == 1
+    assert removed_member.active_session_version == 0
     assert list_projects(db=db, current_user=removed_member) == []
     assert list_chatters(db=db, current_user=removed_member) == []
     with pytest.raises(HTTPException) as project_error:
@@ -188,7 +218,7 @@ def test_linked_chatter_creator_loses_access_when_removed(db):
     db.refresh(chatter)
     assert {user.id for user in project.members} == {kept_member.id}
     assert {user.id for user in chatter.members} == {kept_member.id}
-    assert creator.active_session_version == 1
+    assert creator.active_session_version == 0
     assert list_projects(db=db, current_user=creator) == []
     assert list_chatters(db=db, current_user=creator) == []
     with pytest.raises(HTTPException) as message_error:

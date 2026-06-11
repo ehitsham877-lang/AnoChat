@@ -108,6 +108,22 @@ def sync_project_members_from_chatter(db: Session, chatter: Chatter, member_ids:
     set_project_members(db, project, list(merged_member_ids), list(merged_read_only_ids))
 
 
+def replace_project_members_from_chatter(db: Session, chatter: Chatter, member_ids: list[int], read_only_member_ids: list[int] | None = None) -> None:
+    if not chatter.project_id:
+        return
+    project = db.get(Project, chatter.project_id)
+    if not project:
+        return
+    normal_ids = set(normalized_ids(member_ids))
+    read_only_ids = set(normalized_ids(read_only_member_ids))
+    if project.manager_id:
+        normal_ids.add(project.manager_id)
+    if project.customer_id:
+        normal_ids.add(project.customer_id)
+    read_only_ids -= normal_ids
+    set_project_members(db, project, list(normal_ids | read_only_ids), list(read_only_ids))
+
+
 def sync_project_members_from_linked_chatters(db: Session, project: Project) -> bool:
     if not project or not project.id:
         return False

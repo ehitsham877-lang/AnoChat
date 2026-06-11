@@ -48,17 +48,21 @@
     if (!response.ok) {
       let detail = response.statusText;
       try { detail = (await response.json()).detail || detail; } catch (_) {}
+      const errorMessage = Array.isArray(detail) ? detail.map((d) => d.msg).join(", ") : (detail || `Request failed with ${response.status}`);
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.path = path;
       if (response.status === 404 && !HAS_EXPLICIT_API_BASE && location.hostname.endsWith("vercel.app")) {
-        throw new Error("Frontend is calling Vercel instead of the backend. Add VERCEL_API_BASE in Vercel and redeploy.");
+        error.message = "Frontend is calling Vercel instead of the backend. Add VERCEL_API_BASE in Vercel and redeploy.";
       }
       if (response.status === 404 && path.indexOf("/api/auth/login") === 0) {
-        throw new Error(`Login API not found at ${API_BASE || location.origin}${path}. Check VERCEL_API_BASE; include the gateway prefix if your backend uses one.`);
+        error.message = `Login API not found at ${API_BASE || location.origin}${path}. Check VERCEL_API_BASE; include the gateway prefix if your backend uses one.`;
       }
       if (response.status === 401 && path.indexOf("/api/auth/login") !== 0) {
         localStorage.removeItem(TOKEN_KEY);
         window.dispatchEvent(new CustomEvent("anochat_session_expired", { detail }));
       }
-      throw new Error(Array.isArray(detail) ? detail.map((d) => d.msg).join(", ") : (detail || `Request failed with ${response.status}`));
+      throw error;
     }
     const type = response.headers.get("content-type") || "";
     return type.indexOf("application/json") >= 0 ? response.json() : response.blob();

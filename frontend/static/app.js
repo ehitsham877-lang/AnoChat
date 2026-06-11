@@ -73,6 +73,7 @@
     projectActivityLoading: {},
     stats: null,
     activeChatter: storedActiveChatterId(),
+    chatterAccessNotice: "",
     chatterInfoOpen: false,
     chatInfoExpanded: { members: false, images: false, documents: false },
     scrollMessagesBottom: false,
@@ -142,6 +143,7 @@
     const nextId = Number(id);
     if (Number.isFinite(nextId) && nextId > 0) {
       state.activeChatter = nextId;
+      state.chatterAccessNotice = "";
       localStorage.setItem("anochat_active_chatter", String(nextId));
       return;
     }
@@ -151,6 +153,17 @@
   function clearActiveChatter() {
     state.activeChatter = null;
     localStorage.removeItem("anochat_active_chatter");
+  }
+
+  function markChatterAccessRemoved(message) {
+    clearActiveChatter();
+    state.messages = [];
+    state.typingUsers = [];
+    state.lastMessageSignature = "";
+    state.replyTo = null;
+    state.editingMessage = null;
+    state.editingBody = "";
+    state.chatterAccessNotice = message || "You are no longer a member of this chatter.";
   }
 
   function h(tag, props, children) {
@@ -955,6 +968,12 @@
         renderWhenAudioIdle();
       }
     } catch (err) {
+      if (err.status === 403) {
+        markChatterAccessRemoved("You are no longer a member of this chatter.");
+        toast("You are no longer a member of this chatter.", "error");
+        render();
+        return;
+      }
       if (!silent) toast(err.message || "Could not refresh chatter messages.", "error");
     } finally {
       state.refreshingMessages = false;
@@ -979,10 +998,8 @@
       state.chatters = chatters;
       state.notifications = notifications;
       if (state.activeChatter && !state.chatters.some((item) => Number(item.id) === Number(state.activeChatter))) {
-        clearActiveChatter();
-        state.messages = [];
-        state.typingUsers = [];
-        state.lastMessageSignature = "";
+        markChatterAccessRemoved("You are no longer a member of this chatter.");
+        toast("You are no longer a member of this chatter.", "error");
       }
       const shouldRenderPresence = state.tab !== "chatters" || !state.activeChatter || state.modal?.type === "profile";
       if (shouldRenderPresence && (!state.modal || state.modal.type === "profile")) {
@@ -1030,7 +1047,7 @@
         pushConfig: null, notificationPreferences: null, pushBusy: false,
         activityLogs: [], projectActivity: {}, projectActivityLoading: {}, stats: null, activeChatter: null, pendingAttachment: null, pendingAttachmentPreviewUrl: null, pendingVoiceDuration: null, pendingVoicePreviewUrl: null, replyTo: null, editingMessage: null, editingBody: "", modal: null,
         audioState: {}, audioLoadErrors: {}, pendingAudioRender: false,
-        lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile",
+        lastMessageSignature: "", refreshingMessages: false, lastTypingPingAt: 0, settingsSection: "settings-profile", chatterAccessNotice: "",
       });
       localStorage.setItem("anochat_theme", DEFAULT_THEME);
       toast(err.message || "Could not restore your session. Please sign in again.", "error");
@@ -1112,7 +1129,7 @@
     state.chatters = await apiClient.get("/api/chatters");
     if (options.listOnly) return;
     if (state.activeChatter && !state.chatters.some((item) => Number(item.id) === Number(state.activeChatter))) {
-      clearActiveChatter();
+      markChatterAccessRemoved("You are no longer a member of this chatter.");
     }
     if (!state.activeChatter) {
       state.messages = [];
@@ -1482,7 +1499,7 @@
             active ? chatHeaderActions(active) : null,
           ]),
           active && state.chatSearchOpen ? chatMessageSearchBar() : null,
-          h("div", { class: "message-stream" }, active ? (visibleChatMessages().length ? messageTimeline(visibleChatMessages()) : [chatEmptyState(state.chatMessageSearch ? "No matching messages" : "No messages yet", state.chatMessageSearch ? "Try another search term." : "Start the conversation with a message.")]) : [chatEmptyState("Select a conversation", "Choose a chatter from the list to view messages.")]),
+          h("div", { class: "message-stream" }, active ? (visibleChatMessages().length ? messageTimeline(visibleChatMessages()) : [chatEmptyState(state.chatMessageSearch ? "No matching messages" : "No messages yet", state.chatMessageSearch ? "Try another search term." : "Start the conversation with a message.")]) : [chatEmptyState(state.chatterAccessNotice ? "No longer a member" : "Select a conversation", state.chatterAccessNotice || "Choose a chatter from the list to view messages.")]),
           active ? typingIndicator() : null,
           active ? messageComposer() : null,
         ]),
@@ -3509,6 +3526,12 @@
       state.scrollMessagesBottom = true;
       render();
     } catch (err) {
+      if (err.status === 403) {
+        markChatterAccessRemoved("You are no longer a member of this chatter.");
+        toast("You are no longer a member of this chatter.", "error");
+        render();
+        return;
+      }
       const message = err.message || String(err);
       state.error = message;
       toast(message, "error");
@@ -3606,6 +3629,11 @@
         state.scrollMessagesBottom = true;
       }
     } catch (err) {
+      if (err.status === 403) {
+        markChatterAccessRemoved("You are no longer a member of this chatter.");
+        toast("You are no longer a member of this chatter.", "error");
+        return;
+      }
       const message = err.message || String(err);
       state.error = message;
       toast(message, "error");

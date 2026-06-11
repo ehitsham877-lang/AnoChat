@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.activity_logs.service import log_activity
 from app.auth.service import get_current_user
-from app.common import get_or_404, project_access_ids, read_only_chatter_member_ids, revoke_user_sessions, set_chatter_members, sync_project_members_from_chatter, sync_project_members_from_linked_chatters
+from app.common import get_or_404, project_access_ids, read_only_chatter_member_ids, replace_project_members_from_chatter, set_chatter_members, sync_linked_chatters_from_project, sync_project_members_from_chatter
 from app.database import get_db
 from app.models import Chatter, Message, TypingState, User
 from app.messages.presenter import message_out
@@ -97,14 +97,17 @@ def update_chatter(chatter_id: int, payload: ChatterUpdate, db: Session = Depend
             next_member_ids,
             next_read_only_member_ids,
         )
+        removed_from_linked_chatters: set[int] = set()
         if chatter.project:
-            sync_project_members_from_linked_chatters(db, chatter.project)
+            replace_project_members_from_chatter(db, chatter, next_member_ids, next_read_only_member_ids)
             db.flush()
             db.refresh(chatter.project)
+            removed_from_linked_chatters = sync_linked_chatters_from_project(db, chatter.project, next_member_ids, next_read_only_member_ids)
         current_chatter_member_ids = set(next_member_ids) | set(next_read_only_member_ids)
         current_project_access_ids = project_access_ids(chatter.project) if chatter.project else set()
-        revoked_user_ids = (previous_chatter_member_ids | previous_project_access_ids) - current_chatter_member_ids - current_project_access_ids - {current_user.id}
-        revoke_user_sessions(db, revoked_user_ids)
+        revoked_user_ids = (previous_chatter_member_ids | previous_project_access_ids | removed_from_linked_chatters) - current_chatter_member_ids - current_project_access_ids - {current_user.id}
+        for user_id in revoked_user_ids:
+            create_notification(db, user_id, "Removed from chatter", f"You are no longer a member of {chatter.name}.")
     log_activity(db, "chatter_updated", f"{current_user.name} updated chatter {chatter.name}.", current_user.id, project_id=chatter.project_id, chatter_id=chatter.id)
     db.commit()
     db.refresh(chatter)
