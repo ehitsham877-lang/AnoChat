@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.service import get_current_user
 from app.activity_logs.service import log_activity
-from app.common import get_or_404, project_access_ids, read_only_project_member_ids, revoke_user_sessions, set_chatter_members, set_project_members, sync_linked_chatters_from_project, sync_project_members_from_linked_chatters
+from app.common import get_or_404, project_access_ids, read_only_project_member_ids, revoke_user_sessions, set_chatter_members, set_project_members, sync_linked_chatters_from_project
 from app.database import get_db
 from app.models import ActivityLog, Attachment, Chatter, EmailLog, Project, User
 from app.notifications.service import create_notification
@@ -18,11 +18,6 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 @router.get("", response_model=list[ProjectOut])
 def list_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     projects = db.query(Project).order_by(Project.created_at.desc()).all()
-    changed = False
-    for project in projects:
-        changed = sync_project_members_from_linked_chatters(db, project) or changed
-    if changed:
-        db.commit()
     visible = projects if is_admin(current_user) else [p for p in projects if can_access_project(current_user, p)]
     return [project_out(db, project) for project in visible]
 
@@ -65,9 +60,6 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db), curren
 @router.get("/{project_id}", response_model=ProjectOut)
 def get_project(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     project = get_or_404(db, Project, project_id)
-    if sync_project_members_from_linked_chatters(db, project):
-        db.commit()
-        db.refresh(project)
     assert_project_access(current_user, project)
     return project_out(db, project)
 
@@ -112,9 +104,10 @@ def update_project(project_id: int, payload: ProjectUpdate, db: Session = Depend
     member_ids = data.pop("member_ids", None)
     read_only_member_ids = data.pop("read_only_member_ids", None)
     previous_access_ids = project_access_ids(project)
+    sync_membership = member_ids is not None or read_only_member_ids is not None or "manager_id" in data or "customer_id" in data
     for key, value in data.items():
         setattr(project, key, value)
-    if member_ids is not None or read_only_member_ids is not None:
+    if sync_membership:
         next_member_ids = member_ids if member_ids is not None else [member.id for member in project.members]
         next_read_only_member_ids = read_only_member_ids if read_only_member_ids is not None else read_only_project_member_ids(db, project.id)
         set_project_members(

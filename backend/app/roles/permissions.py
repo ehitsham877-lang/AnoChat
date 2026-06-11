@@ -77,10 +77,12 @@ def can_access_project(user: User, project: Project) -> bool:
 def can_access_chatter(user: User, chatter: Chatter) -> bool:
     if is_admin(user):
         return True
-    if chatter.created_by_id == user.id:
+    if chatter.created_by_id == user.id and not chatter.project_id:
         return True
     if any(member.id == user.id for member in chatter.members):
         return True
+    if chatter.project_id and chatter.members:
+        return False
     return bool(chatter.project and can_access_project(user, chatter.project))
 
 

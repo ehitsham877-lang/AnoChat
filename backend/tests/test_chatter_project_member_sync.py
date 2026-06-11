@@ -84,6 +84,7 @@ def test_chatter_update_syncs_new_members_to_linked_project(db):
     db.refresh(project)
     project_member_ids = {user.id for user in project.members}
     assert {admin.id, first_member.id, added_member.id}.issubset(project_member_ids)
+    assert [item.id for item in list_projects(db=db, current_user=added_member)] == [project.id]
 
 
 def test_chatter_update_removes_members_from_linked_project(db):
@@ -111,7 +112,7 @@ def test_chatter_update_removes_members_from_linked_project(db):
     assert list_projects(db=db, current_user=removed_member) == []
 
 
-def test_chatter_list_repairs_stale_project_members_before_visibility_filter(db):
+def test_stale_project_members_do_not_grant_chatter_access(db):
     admin = add_user(db, "Admin", "admin@example.com", "admin")
     kept_member = add_user(db, "Kept", "kept@example.com")
     removed_member = add_user(db, "Removed", "removed@example.com")
@@ -127,25 +128,7 @@ def test_chatter_list_repairs_stale_project_members_before_visibility_filter(db)
 
     db.refresh(project)
     assert visible_chatters == []
-    assert removed_member.id not in {user.id for user in project.members}
-
-
-def test_project_list_repairs_chatter_only_members_before_visibility_filter(db):
-    admin = add_user(db, "Admin", "admin@example.com", "admin")
-    added_member = add_user(db, "Added", "added@example.com")
-    project = add_project(db)
-    chatter = Chatter(name="Project chat", project_id=project.id, created_by_id=admin.id)
-    db.add(chatter)
-    db.flush()
-    chatter.members = [admin, added_member]
-    project.members = [admin]
-    db.commit()
-
-    visible_projects = list_projects(db=db, current_user=added_member)
-
-    db.refresh(project)
-    assert [item.id for item in visible_projects] == [project.id]
-    assert added_member.id in {user.id for user in project.members}
+    assert removed_member.id in {user.id for user in project.members}
 
 
 def test_project_update_removes_member_from_linked_chatter_and_revokes_session(db):
@@ -179,4 +162,35 @@ def test_project_update_removes_member_from_linked_chatter_and_revokes_session(d
     assert project_error.value.status_code == 403
     with pytest.raises(HTTPException) as message_error:
         create_message(chatter.id, MessageCreate(body="Still here?"), db=db, current_user=removed_member)
+    assert message_error.value.status_code == 403
+
+
+def test_linked_chatter_creator_loses_access_when_removed(db):
+    admin = add_user(db, "Admin", "admin@example.com", "admin")
+    creator = add_user(db, "Creator", "creator@example.com")
+    kept_member = add_user(db, "Kept", "kept@example.com")
+    project = add_project(db)
+    chatter = Chatter(name="Project chat", project_id=project.id, created_by_id=creator.id)
+    db.add(chatter)
+    db.flush()
+    project.members = [creator, kept_member]
+    chatter.members = [creator, kept_member]
+    db.commit()
+
+    update_chatter(
+        chatter.id,
+        ChatterUpdate(member_ids=[kept_member.id]),
+        db=db,
+        current_user=admin,
+    )
+
+    db.refresh(project)
+    db.refresh(chatter)
+    assert {user.id for user in project.members} == {kept_member.id}
+    assert {user.id for user in chatter.members} == {kept_member.id}
+    assert creator.active_session_version == 1
+    assert list_projects(db=db, current_user=creator) == []
+    assert list_chatters(db=db, current_user=creator) == []
+    with pytest.raises(HTTPException) as message_error:
+        create_message(chatter.id, MessageCreate(body="I made this"), db=db, current_user=creator)
     assert message_error.value.status_code == 403
