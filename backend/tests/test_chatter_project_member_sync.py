@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.chatters.routes import create_chatter, update_chatter
 from app.database import Base
 from app.models import Chatter, Project, Role, User
+from app.projects.routes import list_projects
 from app.schemas import ChatterCreate, ChatterUpdate
 
 
@@ -82,3 +83,21 @@ def test_chatter_update_syncs_new_members_to_linked_project(db):
     db.refresh(project)
     project_member_ids = {user.id for user in project.members}
     assert {admin.id, first_member.id, added_member.id}.issubset(project_member_ids)
+
+
+def test_project_list_repairs_chatter_only_members_before_visibility_filter(db):
+    admin = add_user(db, "Admin", "admin@example.com", "admin")
+    added_member = add_user(db, "Added", "added@example.com")
+    project = add_project(db)
+    chatter = Chatter(name="Project chat", project_id=project.id, created_by_id=admin.id)
+    db.add(chatter)
+    db.flush()
+    chatter.members = [admin, added_member]
+    project.members = [admin]
+    db.commit()
+
+    visible_projects = list_projects(db=db, current_user=added_member)
+
+    db.refresh(project)
+    assert [item.id for item in visible_projects] == [project.id]
+    assert added_member.id in {user.id for user in project.members}
