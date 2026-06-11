@@ -2950,7 +2950,7 @@
 
   function modalTitle(modal) {
     if (modal.type === "project") return modal.data ? "Edit Project" : "Create Project";
-    if (modal.type === "projectDetails") return modal.project?.name || "Project Details";
+    if (modal.type === "projectDetails") return "Project Details";
     if (modal.type === "chatter") return modal.data ? "Edit Chatter" : "Create Chatter";
     if (modal.type === "user") return "Create User";
     if (modal.type === "role") return "Edit User";

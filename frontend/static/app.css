@@ -10711,3 +10711,165 @@ svg {
     min-height: 46px;
   }
 }
+
+/* Project details modal polish */
+.project-detail-modal {
+  width: min(820px, calc(100vw - 32px));
+  padding: 18px;
+}
+
+.project-detail-modal .modal-head {
+  margin-bottom: 12px;
+}
+
+.project-detail-modal .modal-head h2 {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.project-detail-body {
+  max-height: calc(100svh - 120px);
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.project-detail-hero {
+  grid-template-columns: 50px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border-radius: 20px;
+}
+
+.project-detail-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  font-size: 14px;
+}
+
+.project-detail-hero h3 {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.project-detail-hero p {
+  max-width: 680px;
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
+
+.project-detail-stats {
+  gap: 10px;
+}
+
+.project-detail-stat {
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 9px;
+  padding: 10px;
+  border-radius: 16px;
+}
+
+.project-detail-stat > span {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+.project-detail-stat strong {
+  font-size: 13px;
+}
+
+.project-detail-section {
+  gap: 9px;
+  padding: 12px;
+  border-radius: 18px;
+}
+
+.project-detail-section-head h4 {
+  font-size: 14px;
+}
+
+.project-detail-section-head > span {
+  min-width: 24px;
+  min-height: 24px;
+  font-size: 11px;
+}
+
+.project-member-grid {
+  gap: 8px;
+}
+
+.project-member-chip,
+.project-linked-list button {
+  min-height: 48px;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.project-member-chip .member-mini-avatar,
+.project-linked-list .member-mini-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 10px;
+}
+
+.project-member-chip strong,
+.project-linked-list strong {
+  font-size: 13px;
+}
+
+.project-member-chip small,
+.project-linked-list small {
+  font-size: 11px;
+}
+
+.detail-empty {
+  min-height: 54px;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.project-timeline {
+  max-height: 170px;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.project-timeline-item {
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 9px;
+  padding: 9px;
+  border-radius: 14px;
+}
+
+.project-timeline-item .feed-type-dot {
+  width: 32px;
+  height: 32px;
+}
+
+.project-timeline-item strong {
+  font-size: 13px;
+}
+
+.project-timeline-item p,
+.project-timeline-item time {
+  font-size: 11px;
+}
+
+.project-timeline-loading,
+.project-timeline-empty {
+  min-height: 82px;
+}
+
+@media (max-width: 760px) {
+  .project-detail-stats,
+  .project-member-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-detail-body {
+    max-height: calc(100svh - 96px);
+  }
+}
