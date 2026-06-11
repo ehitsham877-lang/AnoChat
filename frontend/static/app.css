@@ -3537,13 +3537,23 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   border-radius: 999px;
   display: grid;
   place-items: center;
-  color: var(--muted);
-  background: rgba(255,255,255,.74);
+  color: #64748b;
+  background: rgba(248, 250, 252, .9);
   cursor: pointer;
+  box-shadow: none;
+  transform: none;
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease;
 }
 .pending-attachment-remove:hover {
-  color: #b91c1c;
-  background: rgba(254,226,226,.9);
+  color: #334155;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .10);
+  transform: none;
+}
+.pending-attachment-remove:active {
+  color: #1e293b;
+  background: #eef2f7;
+  transform: none;
 }
 .recording-dot {
   width: 9px;
