@@ -2,16 +2,17 @@ import sys
 from pathlib import Path
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.chatters.routes import create_chatter, list_chatters, update_chatter
+from app.chatters.routes import create_chatter, create_message, list_chatters, update_chatter
 from app.database import Base
 from app.models import Chatter, Project, Role, User
-from app.projects.routes import list_projects
-from app.schemas import ChatterCreate, ChatterUpdate
+from app.projects.routes import get_project, list_projects, update_project
+from app.schemas import ChatterCreate, ChatterUpdate, MessageCreate, ProjectUpdate
 
 
 @pytest.fixture()
@@ -145,3 +146,37 @@ def test_project_list_repairs_chatter_only_members_before_visibility_filter(db):
     db.refresh(project)
     assert [item.id for item in visible_projects] == [project.id]
     assert added_member.id in {user.id for user in project.members}
+
+
+def test_project_update_removes_member_from_linked_chatter_and_revokes_session(db):
+    admin = add_user(db, "Admin", "admin@example.com", "admin")
+    kept_member = add_user(db, "Kept", "kept@example.com")
+    removed_member = add_user(db, "Removed", "removed@example.com")
+    project = add_project(db)
+    chatter = Chatter(name="Project chat", project_id=project.id, created_by_id=admin.id)
+    db.add(chatter)
+    db.flush()
+    project.members = [admin, kept_member, removed_member]
+    chatter.members = [admin, kept_member, removed_member]
+    db.commit()
+
+    update_project(
+        project.id,
+        ProjectUpdate(member_ids=[admin.id, kept_member.id]),
+        db=db,
+        current_user=admin,
+    )
+
+    db.refresh(project)
+    db.refresh(chatter)
+    assert {user.id for user in project.members} == {admin.id, kept_member.id}
+    assert {user.id for user in chatter.members} == {admin.id, kept_member.id}
+    assert removed_member.active_session_version == 1
+    assert list_projects(db=db, current_user=removed_member) == []
+    assert list_chatters(db=db, current_user=removed_member) == []
+    with pytest.raises(HTTPException) as project_error:
+        get_project(project.id, db=db, current_user=removed_member)
+    assert project_error.value.status_code == 403
+    with pytest.raises(HTTPException) as message_error:
+        create_message(chatter.id, MessageCreate(body="Still here?"), db=db, current_user=removed_member)
+    assert message_error.value.status_code == 403

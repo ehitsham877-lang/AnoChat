@@ -965,15 +965,17 @@
     if (document.hidden || !apiClient.token() || !state.user || state.presenceRefreshing) return;
     state.presenceRefreshing = true;
     try {
-      const [me, users, chatters, notifications] = await Promise.all([
+      const [me, users, projects, chatters, notifications] = await Promise.all([
         apiClient.get("/api/auth/me"),
         apiClient.get("/api/users"),
+        apiClient.get("/api/projects"),
         apiClient.get("/api/chatters"),
         apiClient.get("/api/notifications"),
       ]);
       state.user = me;
       applyUserThemePreference(state.user);
       state.users = users;
+      state.projects = projects;
       state.chatters = chatters;
       state.notifications = notifications;
       if (state.activeChatter && !state.chatters.some((item) => Number(item.id) === Number(state.activeChatter))) {

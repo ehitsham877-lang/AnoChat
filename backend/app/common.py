@@ -57,6 +57,42 @@ def set_chatter_members(db: Session, chatter: Chatter, ids: list[int], read_only
     db.expire(chatter, ["members"])
 
 
+def revoke_user_sessions(db: Session, ids: list[int] | set[int] | None) -> None:
+    user_ids = normalized_ids(ids)
+    if not user_ids:
+        return
+    users = db.query(User).filter(User.id.in_(user_ids)).all()
+    for user in users:
+        user.active_session_version = (user.active_session_version or 0) + 1
+
+
+def project_access_ids(project: Project) -> set[int]:
+    ids = {member.id for member in project.members}
+    if project.manager_id:
+        ids.add(project.manager_id)
+    if project.customer_id:
+        ids.add(project.customer_id)
+    return ids
+
+
+def sync_linked_chatters_from_project(db: Session, project: Project, member_ids: list[int], read_only_member_ids: list[int] | None = None) -> set[int]:
+    if not project or not project.id:
+        return set()
+    normal_ids = set(normalized_ids(member_ids))
+    read_only_ids = set(normalized_ids(read_only_member_ids))
+    if project.manager_id:
+        normal_ids.add(project.manager_id)
+    if project.customer_id:
+        normal_ids.add(project.customer_id)
+    desired_ids = normal_ids | read_only_ids
+    removed_ids: set[int] = set()
+    for chatter in db.query(Chatter).filter(Chatter.project_id == project.id, Chatter.active.is_(True)).all():
+        existing_ids = {member.id for member in chatter.members}
+        removed_ids |= existing_ids - desired_ids
+        set_chatter_members(db, chatter, list(desired_ids), list(read_only_ids - normal_ids))
+    return removed_ids
+
+
 def sync_project_members_from_chatter(db: Session, chatter: Chatter, member_ids: list[int], read_only_member_ids: list[int] | None = None) -> None:
     if not chatter.project_id:
         return
