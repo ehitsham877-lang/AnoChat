@@ -22,19 +22,20 @@
   }
 
   function storedThemeForUser(user) {
-    return normalizeTheme(localStorage.getItem(userThemeKey(user)));
+    return normalizeTheme(sessionStorage.getItem(userThemeKey(user)));
   }
 
-  function applyUserThemePreference(user) {
-    state.theme = storedThemeForUser(user);
+  function applyUserThemePreference(user, resetToDefault) {
+    state.theme = resetToDefault ? DEFAULT_THEME : storedThemeForUser(user);
     localStorage.setItem("anochat_theme", state.theme);
+    if (user) sessionStorage.setItem(userThemeKey(user), state.theme);
   }
 
   function saveThemePreference(theme) {
     const normalized = normalizeTheme(theme);
     state.theme = normalized;
     localStorage.setItem("anochat_theme", normalized);
-    if (state.user) localStorage.setItem(userThemeKey(state.user), normalized);
+    if (state.user) sessionStorage.setItem(userThemeKey(state.user), normalized);
   }
 
   const state = {
@@ -768,7 +769,7 @@
       const result = await apiClient.post("/api/auth/login", payload);
       apiClient.setToken(result.access_token);
       state.user = result.user;
-      applyUserThemePreference(state.user);
+      applyUserThemePreference(state.user, true);
       state.tab = "dashboard";
       clearActiveChatter();
       localStorage.setItem("anochat_tab", "dashboard");
@@ -803,6 +804,7 @@
       const loggedOutUser = state.user;
       try { await apiClient.post("/api/auth/logout", {}); } catch (_) {}
       if (loggedOutUser) broadcastPresenceChange({ ...loggedOutUser, messenger_status: "offline" });
+      if (loggedOutUser) sessionStorage.removeItem(userThemeKey(loggedOutUser));
       cancelVoiceRecording(true);
       resetChatterAudioState();
       stopPresenceSync();
