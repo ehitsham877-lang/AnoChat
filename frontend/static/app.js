@@ -1755,11 +1755,12 @@
     const authorName = own ? "You" : (userName(message.sender_id) || "Member");
     const author = own ? state.user : userById(message.sender_id);
     const stamp = `${formatMessageTime(message.created_at)}${message.is_edited ? " · edited" : ""}`;
-    return h("div", { class: own ? "message-row own" : "message-row", id: `message-${message.id}` }, [
+    const menuOpen = Number(state.openMessageMenu) === Number(message.id);
+    return h("div", { class: `${own ? "message-row own" : "message-row"}${menuOpen ? " menu-open" : ""}`, id: `message-${message.id}` }, [
       !own ? userAvatar(author, "message-avatar", authorName) : null,
       h("div", { class: "message-stack" }, [
         showAuthorName ? h("div", { class: "message-author-label" }, authorName) : null,
-        h("div", { class: `${message.is_deleted ? "bubble deleted-message" : "bubble"}${hasAttachments ? " attachment-bubble" : ""}${hasAudio ? " voice-bubble" : ""}${showAuthorName ? "" : " no-author"}` }, [
+        h("div", { class: `${message.is_deleted ? "bubble deleted-message" : "bubble"}${hasAttachments ? " attachment-bubble" : ""}${hasAudio ? " voice-bubble" : ""}${showAuthorName ? "" : " no-author"}${menuOpen ? " menu-open" : ""}` }, [
           h("div", { class: "bubble-meta" }, [
             h("span", { class: "message-actions" }, [
               messageMenu(message, editable, own),

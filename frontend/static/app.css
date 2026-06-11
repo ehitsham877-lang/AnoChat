@@ -7439,6 +7439,10 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   align-items: start;
   gap: 12px;
 }
+.chat-page .message-row.menu-open {
+  position: relative;
+  z-index: 80;
+}
 .chat-page .message-date-divider {
   display: grid;
   grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
@@ -7532,6 +7536,9 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   background: #ffffff;
   box-shadow: none;
 }
+.chat-page .bubble.menu-open {
+  z-index: 90;
+}
 .chat-page .own .bubble {
   max-width: min(560px, 64vw);
   justify-self: end;
@@ -7614,7 +7621,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
 }
 .chat-page .message-options-menu {
   position: absolute;
-  top: 34px;
+  top: auto;
+  bottom: 34px;
   right: 0;
   z-index: 100;
   min-width: 132px;
@@ -7678,7 +7686,8 @@ th { color: var(--muted); font-weight: 800; background: var(--surface-2); }
   height: 28px;
 }
 .chat-page .bubble.voice-bubble .message-options-menu {
-  top: 28px;
+  top: auto;
+  bottom: 28px;
 }
 .chat-page .bubble.attachment-bubble:not(.voice-bubble) {
   width: fit-content;
