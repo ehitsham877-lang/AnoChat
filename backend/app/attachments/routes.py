@@ -115,8 +115,10 @@ async def upload_attachment(
         assert_project_access(current_user, project)
         require_project_write_access(db, current_user, project)
     # Auto-set project_id from chatter if chatter is linked to a project and project_id not explicitly set
-    if not project_id and chatter and chatter.project_id:
-        project_id = chatter.project_id
+    if not project_id and chatter_id:
+        chatter_project_id = db.query(Chatter.project_id).filter(Chatter.id == chatter_id).scalar()
+        if chatter_project_id:
+            project_id = chatter_project_id
     content = await file.read()
     if len(content) > settings.max_upload_bytes:
         raise HTTPException(status_code=413, detail="File too large")
