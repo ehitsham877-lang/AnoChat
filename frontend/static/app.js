@@ -3284,6 +3284,9 @@
     const projectFiles = state.files.filter((file) => sameId(file.project_id, freshProject.id) || projectChatters.some((chatter) => sameId(chatter.id, file.chatter_id)));
     const logs = state.projectActivity[freshProject.id] || [];
     const loading = !!state.projectActivityLoading[freshProject.id];
+    const showAllFiles = state.modal?.showAllProjectFiles;
+    const displayedFiles = showAllFiles ? projectFiles : projectFiles.slice(0, 4);
+    const hasMoreFiles = projectFiles.length > 4;
     return h("div", { class: "project-detail-body" }, [
       h("section", { class: "project-detail-hero" }, [
         h("span", { class: "project-detail-avatar" }, initials(freshProject.name || "Project")),
@@ -3317,7 +3320,11 @@
       ]),
       h("section", { class: "project-detail-section" }, [
         h("div", { class: "project-detail-section-head" }, [h("h4", {}, "Recent files"), h("span", {}, `${projectFiles.length}`)]),
-        projectFiles.length ? h("div", { class: "project-file-list" }, projectFiles.slice(0, 4).map(detailFile)) : detailEmpty("No files shared yet."),
+        projectFiles.length ? h("div", {}, [
+          h("div", { class: "project-file-list" }, displayedFiles.map(detailFile)),
+          hasMoreFiles && !showAllFiles ? h("button", { type: "button", class: "btn btn-soft", onclick: () => { state.modal.showAllProjectFiles = true; render(); } }, `View all ${projectFiles.length} files`) : null,
+          showAllFiles && hasMoreFiles ? h("button", { type: "button", class: "btn btn-soft", onclick: () => { state.modal.showAllProjectFiles = false; render(); } }, "Show recent") : null,
+        ]) : detailEmpty("No files shared yet."),
       ]),
       h("section", { class: "project-detail-section project-timeline-section" }, [
         h("div", { class: "project-detail-section-head" }, [

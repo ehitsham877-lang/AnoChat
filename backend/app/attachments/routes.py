@@ -59,7 +59,7 @@ def allowed_content_type(filename: str | None, content_type: str) -> str | None:
 
 @router.get("", response_model=list[AttachmentOut])
 def list_attachments(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    query = db.query(Attachment).order_by(Attachment.created_at.desc())
+    query = db.query(Attachment).order_by(Attachment.created_at.desc()).filter(Attachment.is_deleted.is_(False))
     if not is_admin(current_user):
         # Non-admin users can see all attachments in projects/chatters they have access to
         accessible_project_ids = set()
@@ -92,8 +92,6 @@ def list_attachments(db: Session = Depends(get_db), current_user: User = Depends
             query = query.filter(or_(*conditions))
         else:
             query = query.filter(Attachment.id == -1)
-        
-        query = query.filter(Attachment.is_deleted.is_(False))
     return query.limit(300).all()
 
 
