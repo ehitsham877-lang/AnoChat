@@ -13,6 +13,7 @@ class RoleOut(BaseModel):
 
 class UserBase(BaseModel):
     name: str
+    last_name: str | None = None
     login: str | None = None
     email: EmailStr
     phone: str | None = None
@@ -27,6 +28,7 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     name: str | None = None
+    last_name: str | None = None
     login: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
@@ -42,6 +44,7 @@ class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
+    last_name: str | None = None
     login: str
     email: EmailStr
     active: bool

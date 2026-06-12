@@ -3413,9 +3413,10 @@
     return h("form", { class: "form-grid role-modal-form", onsubmit: (event) => saveRole(event, user) }, [
       h("div", { class: "form-span role-user-card" }, [
         h("span", { class: "avatar user-avatar" }, initials(user.name)),
-        h("span", {}, [h("strong", {}, user.name), h("small", {}, user.email || user.login)]),
+        h("span", {}, [h("strong", {}, [user.name, user.last_name ? ` ${user.last_name}` : ""].join("")), h("small", {}, user.email || user.login)]),
       ]),
-      field("Name", inputWrap("UserRound", h("input", { name: "name", value: user.name || "", placeholder: "Enter full name", required: true }))),
+      field("Name", inputWrap("UserRound", h("input", { name: "name", value: user.name || "", placeholder: "First name", required: true }))),
+      field("Last Name", inputWrap("UserRound", h("input", { name: "last_name", value: user.last_name || "", placeholder: "Last name" }))),
       field("Email", inputWrap("Mail", h("input", { name: "email", type: "email", value: user.email || "", placeholder: "name@company.com", required: true }))),
       field("Password", inputWrap("Lock", h("input", { name: "password", type: "password", placeholder: "Leave blank to keep current password", minlength: "8", autocomplete: "new-password" }))),
       field("Role", inputWrap("Users", roleSelect("role", normalizeRole(roles(user)[0] || "customer")))),
@@ -4045,6 +4046,7 @@
     await run(async () => {
       const payload = {
         name: String(data.name).trim(),
+        last_name: String(data.last_name || "").trim() || null,
         email,
         login: email,
         roles: [data.role],
