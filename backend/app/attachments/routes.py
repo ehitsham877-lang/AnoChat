@@ -80,6 +80,11 @@ def list_attachments(db: Session = Depends(get_db), current_user: User = Depends
         ).all()
         accessible_chatter_ids = {c.id for c in user_chatters}
         
+        # Also get all chatters linked to accessible projects
+        project_chatters = db.query(Chatter).filter(Chatter.project_id.in_(accessible_project_ids)).all()
+        project_chatter_ids = {c.id for c in project_chatters}
+        accessible_chatter_ids.update(project_chatter_ids)
+        
         # Build conditions for accessible attachments
         conditions = []
         if accessible_project_ids:
